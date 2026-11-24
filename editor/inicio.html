@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VibeClipper</title>
+<style>
+:root { --bg: #0f1115; --painel: #171a21; --painel2: #1e222b; --borda: #2a2f3a; --texto: #e6e8ee; --fraco: #8b93a4;
+  --acento: #ff4d3d; --acento2: #ffb020; --ok: #2fbf71; --raio: 12px; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--texto); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+button, input, select { font: inherit; color: inherit; }
+a { color: inherit; }
+.topo { display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--borda); background: var(--painel); }
+.topo h1 { font-size: 18px; margin: 0; } .topo h1 b { color: var(--acento); }
+.topo .espaco { flex: 1; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 24px 16px 60px; }
+.card { background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio); padding: 20px; margin-bottom: 22px; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--fraco); margin: 0 0 14px; font-weight: 600; }
+.abas { display: inline-flex; border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+.abas button { background: transparent; border: 0; padding: 8px 16px; cursor: pointer; color: var(--fraco); }
+.abas button.ativo { background: var(--acento); color: #fff; }
+input[type=text] { width: 100%; background: var(--bg); border: 1px solid var(--borda); border-radius: 10px; padding: 12px 14px; font-size: 16px; }
+input[type=text]:focus { outline: 2px solid var(--acento); border-color: transparent; }
+.soltar { border: 2px dashed var(--borda); border-radius: 12px; padding: 34px 16px; text-align: center; color: var(--fraco); cursor: pointer; transition: .15s; }
+.soltar.em-cima { border-color: var(--acento); background: rgba(255,77,61,.06); color: var(--texto); }
+.soltar b { color: var(--texto); }
+.opcoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 16px 0; }
+.opcoes label { display: block; font-size: 12.5px; color: var(--fraco); margin-bottom: 5px; }
+select { width: 100%; background: var(--bg); border: 1px solid var(--borda); border-radius: 8px; padding: 8px 10px; }
+.btn { background: var(--painel2); border: 1px solid var(--borda); border-radius: 10px; padding: 9px 16px; cursor: pointer; text-decoration: none; display: inline-block; }
+.btn:hover { border-color: #3c4352; }
+.btn.primario { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; padding: 12px 22px; font-size: 16px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.nota { color: var(--fraco); font-size: 13px; margin-top: 10px; }
+.barra { height: 8px; background: var(--bg); border-radius: 99px; overflow: hidden; margin: 8px 0 6px; }
+.barra > div { height: 100%; background: linear-gradient(90deg, var(--acento), var(--acento2)); transition: width .5s; }
+.tarefa { border: 1px solid var(--borda); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; background: var(--painel2); }
+.tarefa .l1 { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tarefa .tit { font-weight: 600; flex: 1; min-width: 200px; overflow-wrap: anywhere; }
+.selo { font-size: 12px; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--borda); white-space: nowrap; }
+.selo.rodando { border-color: var(--acento2); color: var(--acento2); }
+.selo.pronto { border-color: var(--ok); color: var(--ok); }
+.selo.erro, .selo.cancelado { border-color: var(--acento); color: var(--acento); }
+.passos { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--fraco); }
+.passos span.feito { color: var(--ok); } .passos span.agora { color: var(--texto); font-weight: 600; }
+pre.log { background: #0a0c10; border: 1px solid var(--borda); border-radius: 8px; padding: 10px; font-size: 12px; max-height: 260px; overflow: auto; white-space: pre-wrap; margin: 8px 0 0; }
+.grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.video { background: var(--painel2); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.video .mini { aspect-ratio: 16/9; background: #000 center/cover no-repeat; }
+.video .info { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.video .t { font-weight: 600; font-size: 14px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.video .m { font-size: 12.5px; color: var(--fraco); }
+.video .acoes { display: flex; gap: 6px; margin-top: auto; }
+.video .acoes .btn { padding: 6px 12px; font-size: 13px; }
+.vazio { color: var(--fraco); padding: 20px 0; }
+</style>
+</head>
+<body>
+<div class="topo"><h1><b>Vibe</b>Clipper</h1><div class="espaco"></div><a class="btn" href="/config">⚙ Configurações</a><a class="btn" href="/editar">Abrir o editor</a></div>
+<div class="wrap">
+  <section class="card">
+    <h2>Novo vídeo pra cortar</h2>
+    <div class="abas"><button id="abaLink" class="ativo">Link do YouTube</button><button id="abaArq">Arquivo de vídeo</button></div>
+    <div id="pLink"><input type="text" id="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off"></div>
+    <div id="pArq" style="display:none">
+      <label class="soltar" id="soltar"><input type="file" id="arq" accept="video/*" hidden>
+        <div id="soltarTxt"><b>Arraste o vídeo aqui</b> ou clique pra escolher<br><span style="font-size:13px">mp4, mov, mkv, webm</span></div>
+      </label>
+      <div class="barra" id="upBarra" style="display:none"><div style="width:0"></div></div>
+    </div>
+    <div class="opcoes">
+      <div><label>Tipo de vídeo</label><select id="gameplay">
+        <option value="auto">Descobrir sozinho</option><option value="sim">Gameplay (jogo + facecam)</option>
+        <option value="nao">Conversa / podcast / aula</option></select></div>
+      <div><label>Quantos cortes</label><select id="cortes"><option value="0">A skill decide</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>10</option></select></div>
+      <div><label>Idioma do vídeo</label><select id="idioma"><option value="pt">Português</option><option value="en">Inglês</option><option value="es">Espanhol</option></select></div>
+      <div><label>Quem escolhe os momentos</label><select id="modelo"><option value="opus">Claude Opus (mais caprichado)</option><option value="sonnet">Claude Sonnet (mais econômico)</option></select></div>
+    </div>
+    <button class="btn primario" id="btIr">✂ Fazer os cortes</button>
+    <div class="nota">Download, transcrição, corte e edição rodam no seu computador, de graça. Só a escolha dos momentos usa IA: uma pergunta por vídeo, pela sua chave da API do Claude ou pelo Claude Code logado (<a href="/config">Configurações</a>). Use em vídeos seus ou que você tem autorização pra cortar.</div>
+    <div class="nota" id="semIA" style="display:none;color:var(--acento2)">⚠ Nenhuma IA configurada ainda: coloque a sua chave da API do Claude em <a href="/config">Configurações</a>.</div>
+    <div class="nota" id="aviso" style="color:var(--acento)"></div>
+  </section>
+  <section class="card" id="cardTarefas" style="display:none"><h2>Em andamento</h2><div id="listaTarefas"></div></section>
+  <section class="card"><h2>Seus vídeos</h2><div class="grade" id="grade"></div></section>
+</div>
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const api = async (url, opt) => { const r = await fetch(url, opt); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.erro || r.statusText); return j; };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let modo = "link", arquivo = null, logsAbertos = new Set();
+$("#abaLink").onclick = () => { modo = "link"; $("#abaLink").classList.add("ativo"); $("#abaArq").classList.remove("ativo"); $("#pLink").style.display = ""; $("#pArq").style.display = "none"; };
+$("#abaArq").onclick = () => { modo = "arq"; $("#abaArq").classList.add("ativo"); $("#abaLink").classList.remove("ativo"); $("#pArq").style.display = ""; $("#pLink").style.display = "none"; };
+const sol = $("#soltar");
+function escolheu(f) { if (!f) return; arquivo = f; $("#soltarTxt").innerHTML = `<b>${esc(f.name)}</b><br><span style="font-size:13px">${(f.size / 1048576).toFixed(0)} MB · clique pra trocar</span>`; }
+$("#arq").onchange = () => escolheu($("#arq").files[0]);
+["dragenter", "dragover"].forEach(e => sol.addEventListener(e, (ev) => { ev.preventDefault(); sol.classList.add("em-cima"); }));
+["dragleave", "drop"].forEach(e => sol.addEventListener(e, (ev) => { ev.preventDefault(); sol.classList.remove("em-cima"); }));
+sol.addEventListener("drop", (ev) => escolheu(ev.dataTransfer.files[0]));
+function enviar(f) {
+  return new Promise((ok, falha) => {
+    const x = new XMLHttpRequest(); x.open("POST", "/api/upload?nome=" + encodeURIComponent(f.name));
+    const b = $("#upBarra"); b.style.display = "";
+    x.upload.onprogress = (e) => { if (e.lengthComputable) { b.firstElementChild.style.width = (100 * e.loaded / e.total).toFixed(1) + "%"; $("#btIr").textContent = `Enviando ${(100 * e.loaded / e.total).toFixed(0)}%…`; } };
+    x.onload = () => { const j = JSON.parse(x.responseText || "{}"); x.status === 200 ? ok(j) : falha(new Error(j.erro || "falhou")); };
+    x.onerror = () => falha(new Error("o envio falhou")); x.send(f);
+  });
+}
+$("#btIr").onclick = async () => {
+  $("#aviso").textContent = ""; const bt = $("#btIr"); bt.disabled = true;
+  try {
+    const dados = { gameplay: $("#gameplay").value, cortes: +$("#cortes").value, idioma: $("#idioma").value, modelo: $("#modelo").value };
+    if (modo === "link") { dados.url = $("#url").value.trim(); if (!dados.url) throw new Error("cole o link do vídeo"); }
+    else { if (!arquivo) throw new Error("escolha um arquivo de vídeo"); dados.upload = (await enviar(arquivo)).upload; }
+    await api("/api/tarefa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dados) });
+    $("#url").value = ""; arquivo = null; $("#soltarTxt").innerHTML = "<b>Arraste o vídeo aqui</b> ou clique pra escolher"; $("#upBarra").style.display = "none";
+    atualizar();
+  } catch (e) { $("#aviso").textContent = e.message; }
+  bt.disabled = false; bt.textContent = "✂ Fazer os cortes";
+};
+const ETAPAS = ["Baixando", "Transcrevendo", "Escolhendo os momentos", "Cortando", "Enquadrando", "Editando e renderizando", "Pronto"];
+function tempo(s) { s = Math.max(0, Math.round(s)); return s >= 60 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s` : `${s} s`; }
+async function atualizar() {
+  try {
+    const [{ tarefas }, { lista }] = await Promise.all([api("/api/tarefas"), api("/api/projetos")]);
+    const vis = tarefas.filter(t => t.estado !== "pronto" || Date.now() / 1000 - (t.fim || 0) < 3600);
+    $("#cardTarefas").style.display = vis.length ? "" : "none";
+    const el = $("#listaTarefas");
+    el.innerHTML = vis.map(t => {
+      const sel = { "rodando": "rodando", "na fila": "rodando", "pronto": "pronto", "erro": "erro", "cancelado": "cancelado" }[t.estado] || "";
+      const passos = ETAPAS.slice(0, 6).map((n, i) => `<span class="${t.estado === "pronto" || i < t.etapa ? "feito" : i === t.etapa && t.estado === "rodando" ? "agora" : ""}">${i < t.etapa || t.estado === "pronto" ? "✓" : "•"} ${n}</span>`).join("");
+      const dur = (t.fim || Date.now() / 1000) - t.inicio;
+      return `<div class="tarefa" data-id="${esc(t.id)}"><div class="l1"><div class="tit">${esc(t.titulo || t.origem)}</div>
+        <span class="selo ${sel}">${esc(t.estado)}</span><span class="nota" style="margin:0">${tempo(dur)}</span>
+        ${t.estado === "rodando" || t.estado === "na fila" ? `<button class="btn cancelar" style="padding:4px 10px;font-size:13px">Cancelar</button>` : ""}
+        ${t.estado === "pronto" && t.slug ? `<a class="btn primario" style="padding:6px 14px;font-size:14px" href="/editar?v=${encodeURIComponent(t.slug)}">Abrir no editor</a>` : ""}
+        <button class="btn verlog" style="padding:4px 10px;font-size:13px">${logsAbertos.has(t.id) ? "Esconder detalhes" : "Detalhes"}</button></div>
+        <div class="barra"><div style="width:${t.estado === "pronto" ? 100 : t.progresso || 0}%"></div></div>
+        <div class="passos">${passos}</div>
+        <div class="nota" style="margin-top:6px">${esc(t.estado === "erro" ? "Erro: " + (t.erro || "") : t.msg || "")}</div>
+        ${logsAbertos.has(t.id) ? `<pre class="log">carregando…</pre>` : ""}</div>`;
+    }).join("");
+    el.querySelectorAll(".tarefa").forEach(d => {
+      const id = d.dataset.id;
+      const c = d.querySelector(".cancelar"); if (c) c.onclick = async () => { if (confirm("Cancelar este vídeo?")) { await api(`/api/tarefa/${id}/cancelar`, { method: "POST" }); atualizar(); } };
+      d.querySelector(".verlog").onclick = () => { logsAbertos.has(id) ? logsAbertos.delete(id) : logsAbertos.add(id); atualizar(); };
+      const pre = d.querySelector("pre.log"); if (pre) api(`/api/tarefa/${id}/log`).then(j => { pre.textContent = j.log || "(sem nada ainda)"; pre.scrollTop = pre.scrollHeight; });
+    });
+    const g = $("#grade");
+    g.innerHTML = lista.length ? lista.map(p => `<div class="video"><div class="mini" style="background-image:${p.miniatura ? `url('/miniatura/${encodeURIComponent(p.slug)}')` : "none"}"></div>
+      <div class="info"><div class="t" title="${esc(p.titulo)}">${esc(p.titulo)}</div>
+      <div class="m">${p.prontos} de ${p.cortes} cortes prontos · ${new Date(p.quando * 1000).toLocaleDateString("pt-BR")}</div>
+      <div class="acoes"><a class="btn" href="/editar?v=${encodeURIComponent(p.slug)}">Editar</a>
+      <button class="btn pasta" data-slug="${esc(p.slug)}">Abrir pasta</button></div></div></div>`).join("")
+      : `<div class="vazio">Nenhum vídeo ainda. Mande um link ou arquivo aí em cima.</div>`;
+    g.querySelectorAll(".pasta").forEach(b => b.onclick = () => api(`/api/abrir-pasta/${encodeURIComponent(b.dataset.slug)}`, { method: "POST" }));
+  } catch (e) { console.error(e); }
+}
+api("/api/config").then(c => { $("#modelo").value = c.VIBECLIPPER_MODELO || "opus";
+  const temIA = c.tem_ANTHROPIC_API_KEY || (c.claude_code && c.VIBECLIPPER_IA !== "api");
+  $("#semIA").style.display = temIA ? "none" : ""; }).catch(() => {});
+atualizar(); setInterval(atualizar, 2500);
+</script>
+</body>
+</html>

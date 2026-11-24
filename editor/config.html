@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VibeClipper · Configurações</title>
+<style>
+:root { --bg: #0f1115; --painel: #171a21; --painel2: #1e222b; --borda: #2a2f3a; --texto: #e6e8ee; --fraco: #8b93a4;
+  --acento: #ff4d3d; --acento2: #ffb020; --ok: #2fbf71; --raio: 12px; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--texto); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+button, input, select { font: inherit; color: inherit; }
+a { color: inherit; }
+.topo { display: flex; align-items: center; gap: 14px; padding: 14px 24px; border-bottom: 1px solid var(--borda); background: var(--painel); }
+.topo h1 { font-size: 18px; margin: 0; } .topo h1 b { color: var(--acento); }
+.topo .espaco { flex: 1; }
+.link { color: var(--fraco); text-decoration: none; } .link:hover { color: var(--texto); }
+.wrap { max-width: 760px; margin: 0 auto; padding: 28px 16px 60px; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--fraco); margin: 0 0 6px; font-weight: 600; }
+.card { background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio); padding: 22px; margin-bottom: 20px; }
+.card p { color: var(--fraco); margin: 6px 0 14px; font-size: 14px; }
+label.r { display: block; font-size: 13px; color: var(--fraco); margin: 14px 0 6px; }
+.linha { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+input[type=password], input[type=text], select { flex: 1; min-width: 220px; background: var(--bg); border: 1px solid var(--borda); border-radius: 9px; padding: 10px 12px; }
+input:focus, select:focus { outline: 2px solid var(--acento); border-color: transparent; }
+.btn { background: var(--painel2); border: 1px solid var(--borda); border-radius: 9px; padding: 9px 14px; cursor: pointer; text-decoration: none; display: inline-block; }
+.btn:hover { border-color: #3c4352; }
+.btn.primario { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; }
+.btn:disabled { opacity: .5; cursor: default; }
+.estado { font-size: 13.5px; margin-top: 10px; min-height: 20px; }
+.estado.ok { color: var(--ok); } .estado.erro { color: var(--acento); }
+.tag { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--borda); color: var(--fraco); }
+.tag.ok { border-color: var(--ok); color: var(--ok); }
+.opcoes { display: grid; gap: 8px; }
+.opcao { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 10px; cursor: pointer; }
+.opcao:has(input:checked) { border-color: var(--acento); background: rgba(255,77,61,.06); }
+.opcao input { margin-top: 4px; accent-color: var(--acento); }
+.opcao b { display: block; } .opcao span { color: var(--fraco); font-size: 13.5px; }
+.aviso { background: #12221a; border: 1px solid #1f4a33; color: #9fe0bb; border-radius: 10px; padding: 12px 14px; font-size: 13.5px; }
+</style>
+</head>
+<body>
+<div class="topo"><a class="link" href="/">← Início</a><h1><b>Vibe</b>Clipper · Configurações</h1><div class="espaco"></div><a class="btn" href="/editar">Abrir o editor</a></div>
+<div class="wrap">
+  <div class="aviso" style="margin-bottom:20px">🔒 As chaves ficam só neste computador, no arquivo <code id="arq">.env</code> da pasta do VibeClipper. Esse arquivo não vai pro Git e a página nunca mostra a chave inteira.</div>
+
+  <section class="card">
+    <h2>Quem escolhe os momentos</h2>
+    <p>A única etapa que usa IA. O resto (download, transcrição, corte, edição) roda no seu computador, de graça.</p>
+    <div class="opcoes" id="modos">
+      <label class="opcao"><input type="radio" name="ia" value="auto"><div><b>Automático</b><span>Usa a sua chave da API se tiver uma; senão, o Claude Code logado neste computador.</span></div></label>
+      <label class="opcao"><input type="radio" name="ia" value="api"><div><b>Chave da API do Claude</b><span>Cobra por uso na sua conta da Anthropic (uma pergunta por vídeo).</span></div></label>
+      <label class="opcao"><input type="radio" name="ia" value="claude_code"><div><b>Claude Code logado</b><span>Usa o seu plano do Claude. <span id="ccEstado" class="tag">procurando…</span></span></div></label>
+    </div>
+    <label class="r">Modelo padrão</label>
+    <div class="linha"><select id="modelo"><option value="opus">Claude Opus 5.5 (mais caprichado)</option><option value="sonnet">Claude Sonnet 5.5 (mais econômico)</option></select></div>
+  </section>
+
+  <section class="card">
+    <h2>Chave da API do Claude</h2>
+    <p>Crie em <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> → API Keys. Ela começa com <code>sk-ant-</code>. <span id="tagClaude" class="tag">não configurada</span></p>
+    <div class="linha">
+      <input type="password" id="chaveClaude" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+      <button class="btn" id="verClaude" title="Mostrar/esconder">👁</button>
+      <button class="btn" id="testarClaude">Testar</button>
+      <button class="btn" id="apagarClaude">Remover</button>
+    </div>
+    <div class="estado" id="estClaude"></div>
+  </section>
+
+  <section class="card">
+    <h2>Chave da ElevenLabs <span class="tag">opcional</span></h2>
+    <p>Transcrição paga e ainda mais precisa. Sem ela, o sistema usa o Whisper, que é grátis e roda no computador. <span id="tagEleven" class="tag">não configurada</span></p>
+    <div class="linha">
+      <input type="password" id="chaveEleven" placeholder="sua chave da ElevenLabs" autocomplete="off" spellcheck="false">
+      <button class="btn" id="apagarEleven">Remover</button>
+    </div>
+  </section>
+
+  <div class="linha"><button class="btn primario" id="salvar">Salvar configurações</button><span class="estado" id="estSalvar" style="margin:0"></span></div>
+</div>
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const api = async (url, opt) => { const r = await fetch(url, opt); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.erro || r.statusText); return j; };
+const post = (url, body) => api(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+let atual = {};
+function mostra(c) {
+  atual = c;
+  document.querySelectorAll("input[name=ia]").forEach(r => r.checked = r.value === (c.VIBECLIPPER_IA || "auto"));
+  $("#modelo").value = c.VIBECLIPPER_MODELO || "opus";
+  $("#tagClaude").textContent = c.tem_ANTHROPIC_API_KEY ? `configurada ${c.ANTHROPIC_API_KEY}` : "não configurada";
+  $("#tagClaude").className = "tag" + (c.tem_ANTHROPIC_API_KEY ? " ok" : "");
+  $("#tagEleven").textContent = c.tem_ELEVENLABS_API_KEY ? `configurada ${c.ELEVENLABS_API_KEY}` : "não configurada";
+  $("#tagEleven").className = "tag" + (c.tem_ELEVENLABS_API_KEY ? " ok" : "");
+  if (c.claude_code !== undefined) { $("#ccEstado").textContent = c.claude_code ? "encontrado ✓" : "não encontrado neste computador"; $("#ccEstado").className = "tag" + (c.claude_code ? " ok" : ""); }
+  if (c.arquivo) $("#arq").textContent = c.arquivo;
+}
+function estado(el, msg, cls) { el.textContent = msg; el.className = "estado" + (cls ? " " + cls : ""); }
+$("#verClaude").onclick = () => { const i = $("#chaveClaude"); i.type = i.type === "password" ? "text" : "password"; };
+$("#testarClaude").onclick = async () => {
+  const b = $("#testarClaude"); b.disabled = true; estado($("#estClaude"), "testando…");
+  try { const r = await post("/api/config/testar", { chave: $("#chaveClaude").value.trim(), modelo: $("#modelo").value }); estado($("#estClaude"), r.msg, r.ok ? "ok" : "erro"); }
+  catch (e) { estado($("#estClaude"), "erro: " + e.message, "erro"); }
+  b.disabled = false;
+};
+async function salvar(extra) {
+  const d = { VIBECLIPPER_IA: document.querySelector("input[name=ia]:checked")?.value || "auto", VIBECLIPPER_MODELO: $("#modelo").value, ...extra };
+  const kc = $("#chaveClaude").value.trim(), ke = $("#chaveEleven").value.trim();
+  if (kc && !("ANTHROPIC_API_KEY" in d)) {
+    if (!kc.startsWith("sk-ant-")) { estado($("#estClaude"), "a chave da API do Claude começa com sk-ant-", "erro"); return; }
+    d.ANTHROPIC_API_KEY = kc;
+  }
+  if (ke && !("ELEVENLABS_API_KEY" in d)) d.ELEVENLABS_API_KEY = ke;
+  try { const r = await post("/api/config", d); $("#chaveClaude").value = ""; $("#chaveEleven").value = ""; mostra({ ...atual, ...r }); estado($("#estSalvar"), "salvo ✓", "ok"); }
+  catch (e) { estado($("#estSalvar"), "erro: " + e.message, "erro"); }
+}
+$("#salvar").onclick = () => salvar({});
+$("#apagarClaude").onclick = () => { if (confirm("Remover a chave da API do Claude deste computador?")) salvar({ ANTHROPIC_API_KEY: "__apagar__" }); };
+$("#apagarEleven").onclick = () => { if (confirm("Remover a chave da ElevenLabs deste computador?")) salvar({ ELEVENLABS_API_KEY: "__apagar__" }); };
+api("/api/config").then(mostra).catch(e => estado($("#estSalvar"), "erro: " + e.message, "erro"));
+</script>
+</body>
+</html>

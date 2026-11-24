@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VibeClipper Editor</title>
+<style>
+:root {
+  --bg: #0f1115; --painel: #171a21; --painel2: #1e222b; --borda: #2a2f3a; --texto: #e6e8ee; --fraco: #8b93a4;
+  --acento: #ff4d3d; --acento2: #ffb020; --ok: #2fbf71; --azul: #4c8dff; --verde: #2fbf71; --raio: 10px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--texto);
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: var(--painel2); border: 1px solid var(--borda); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+button:hover { border-color: #3c4352; background: #252a35; }
+button.primario { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; }
+button.primario:hover { filter: brightness(1.08); }
+button:disabled { opacity: .5; cursor: default; }
+input[type=number], input[type=text], select, textarea { background: var(--bg); border: 1px solid var(--borda); border-radius: 6px; padding: 4px 6px; }
+textarea { width: 100%; resize: vertical; min-height: 44px; }
+input[type=range] { accent-color: var(--acento); width: 100%; }
+a.link { color: var(--fraco); text-decoration: none; white-space: nowrap; } a.link:hover { color: var(--texto); }
+.app { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
+header { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--borda); background: var(--painel); flex-wrap: wrap; }
+header h1 { font-size: 15px; margin: 0; white-space: nowrap; }
+header h1 b { color: var(--acento); }
+.tabs-cortes { display: flex; gap: 4px; flex-wrap: wrap; }
+.tabs-cortes button { padding: 5px 10px; font-size: 13px; }
+.tabs-cortes button.ativo { background: var(--acento); border-color: var(--acento); color: #fff; }
+.tabs-cortes button .ponto { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--acento2); margin-left: 5px; vertical-align: middle; }
+.espaco { flex: 1; }
+#estado { color: var(--fraco); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 420px; }
+#estado.ok { color: var(--ok); } #estado.erro { color: var(--acento); }
+main { display: grid; grid-template-columns: minmax(0, 1.5fr) auto minmax(320px, 400px); gap: 14px; padding: 14px 16px; min-height: 0; }
+.painel { background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio); min-height: 0; display: flex; flex-direction: column; }
+.painel > h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); margin: 0; padding: 10px 12px 0; font-weight: 600; }
+.palco { position: relative; margin: 10px 12px; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9; flex-shrink: 0; }
+.palco video, .palco canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.palco video { object-fit: contain; }
+.dica { color: var(--fraco); font-size: 12.5px; padding: 0 12px 10px; }
+.dica kbd { background: var(--painel2); border: 1px solid var(--borda); border-radius: 4px; padding: 0 5px; font-size: 11.5px; }
+.previa-wrap { display: flex; flex-direction: column; align-items: center; padding: 10px 12px; min-height: 0; }
+#pv { height: min(calc(100vh - 330px), 720px); aspect-ratio: 9 / 16; background: #000; border-radius: 10px; box-shadow: 0 6px 30px rgba(0,0,0,.45); touch-action: none; }
+.lado { overflow: hidden; }
+.abas { display: flex; border-bottom: 1px solid var(--borda); }
+.abas button { flex: 1; border: 0; border-radius: 0; background: transparent; padding: 10px 2px; color: var(--fraco); border-bottom: 2px solid transparent; font-size: 13px; }
+.abas button.ativo { color: var(--texto); border-bottom-color: var(--acento); }
+.conteudo { overflow: auto; padding: 12px; flex: 1; min-height: 0; }
+.aba { display: none; } .aba.ativo { display: block; }
+.campo { margin-bottom: 12px; }
+.campo label { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--fraco); margin-bottom: 4px; gap: 8px; }
+.linha { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; }
+.seg button.ativo { background: var(--acento); color: #fff; }
+.lista { display: flex; flex-direction: column; gap: 6px; }
+.item { background: var(--painel2); border: 1px solid var(--borda); border-radius: 8px; padding: 8px; }
+.item.sel { border-color: var(--acento); }
+.item.agora { box-shadow: inset 3px 0 0 var(--acento2); }
+.item .topo { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.item .topo input[type=number] { width: 66px; }
+.item .topo .x { margin-left: auto; padding: 2px 8px; }
+.item input[type=text].leg { width: 100%; text-transform: uppercase; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.chip { font-size: 11.5px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--borda); cursor: pointer; user-select: none; }
+.chip.on { background: var(--acento); border-color: var(--acento); color: #fff; }
+.mini { font-size: 12px; padding: 3px 8px; }
+.bloco { border: 1px solid var(--borda); border-radius: 8px; padding: 10px; margin-bottom: 12px; background: rgba(255,255,255,.02); }
+.bloco h3 { margin: 0 0 8px; font-size: 13px; }
+.aviso { background: #2a2410; border: 1px solid #4a3d12; color: #f0d68a; border-radius: 8px; padding: 8px 10px; font-size: 12.5px; margin-bottom: 10px; }
+.tag { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--bg); color: var(--fraco); }
+footer { border-top: 1px solid var(--borda); background: var(--painel); padding: 8px 16px 12px; }
+.controles { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+#tempo { font-variant-numeric: tabular-nums; color: var(--fraco); min-width: 190px; }
+#tl { width: 100%; height: 150px; display: block; cursor: pointer; border-radius: 6px; background: var(--bg); touch-action: none; }
+#finalVideo { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 9 / 16; max-height: 60vh; }
+@media (max-width: 1100px) {
+  .app { height: auto; min-height: 100vh; }
+  main { grid-template-columns: 1fr; }
+  .painel { min-height: auto; }
+  #pv { height: 70vh; }
+  .conteudo { max-height: 70vh; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a class="link" href="/" title="Página inicial">← Início</a>
+    <h1><b>Vibe</b>Clipper · editor</h1>
+    <select id="projeto" title="Vídeo" style="max-width:240px"></select>
+    <div class="tabs-cortes" id="tabsCortes"></div>
+    <div class="espaco"></div>
+    <span id="estado">carregando…</span>
+    <a class="link" href="/config" title="Configurações">⚙</a>
+    <button id="btDesfazer" title="Desfazer (Ctrl+Z)">↶</button>
+    <button id="btRefazer" title="Refazer (Ctrl+Y)">↷</button>
+    <button id="btDescartar" title="Apagar as edições deste corte e voltar ao automático">Voltar ao automático</button>
+    <button id="btRender" class="primario">Renderizar corte</button>
+  </header>
+  <main>
+    <section class="painel">
+      <h2>Vídeo original · onde a câmera olha</h2>
+      <div class="palco" id="palco">
+        <video id="v" preload="auto" playsinline></video>
+        <canvas id="ov"></canvas>
+      </div>
+      <div class="dica">Arraste o retângulo pra mover a câmera; <kbd>roda do mouse</kbd> aproxima/abre. Cada ajuste vira um ponto-chave no tempo atual.
+        <kbd>Espaço</kbd> toca/pausa · <kbd>←</kbd><kbd>→</kbd> 0,1 s (<kbd>Shift</kbd> 1 s) · <kbd>K</kbd> ponto da câmera · <kbd>I</kbd>/<kbd>O</kbd> marca início/fim · <kbd>X</kbd> remove o trecho marcado · <kbd>Del</kbd> apaga o selecionado</div>
+    </section>
+    <section class="painel">
+      <h2>Prévia 9:16</h2>
+      <div class="previa-wrap"><canvas id="pv" width="540" height="960"></canvas></div>
+      <div class="dica" style="text-align:center">Arraste a facecam (canto de baixo à esquerda redimensiona), imagens, textos e a legenda.</div>
+    </section>
+    <section class="painel lado">
+      <div class="abas" id="abas">
+        <button data-aba="camera" class="ativo">Câmera</button>
+        <button data-aba="legenda">Legenda</button>
+        <button data-aba="facecam">Facecam</button>
+        <button data-aba="midia">Mídia</button>
+        <button data-aba="cortar">Cortar</button>
+        <button data-aba="final">Final</button>
+      </div>
+      <div class="conteudo">
+        <!-- CÂMERA -->
+        <div class="aba ativo" id="aba-camera">
+          <div class="campo">
+            <label>Modo da câmera</label>
+            <div class="seg"><button id="modoAuto">Automática</button><button id="modoManual">Manual</button></div>
+          </div>
+          <div id="camAutoInfo" class="dica" style="padding:0 0 10px">Automática: segue você e quem aparecer na tela. Arraste o retângulo pra passar pro manual (a câmera automática vira pontos-chave que você ajusta).</div>
+          <div class="bloco">
+            <h3>⚡ Zoom rápido neste momento</h3>
+            <div class="campo"><label><span>Intensidade</span><span id="zrVal"></span></label><input type="range" id="zrInt" min="1.1" max="2" step="0.05" value="1.35"></div>
+            <div class="campo"><label><span>Quanto tempo fica</span><span id="zrDurVal"></span></label><input type="range" id="zrDur" min="0.4" max="6" step="0.1" value="1.5"></div>
+            <button class="mini primario" id="btZoomRapido">Aplicar zoom aqui</button>
+          </div>
+          <div class="campo">
+            <label><span>Zoom no tempo atual</span><span id="zoomVal">1,00×</span></label>
+            <input type="range" id="zoom" min="0.5" max="2" step="0.01" value="1">
+          </div>
+          <div class="linha" style="margin-bottom:12px">
+            <button class="mini" id="btAddKey">+ Ponto-chave aqui</button>
+            <button class="mini" id="btCentro">Centralizar no jogo</button>
+          </div>
+          <div class="lista" id="listaKeys"></div>
+        </div>
+        <!-- LEGENDA -->
+        <div class="aba" id="aba-legenda">
+          <div class="linha" style="gap:12px; margin-bottom:10px">
+            <div class="campo" style="margin:0"><label>Cor de destaque</label><input type="color" id="corLeg"></div>
+            <div class="campo" style="margin:0; flex:1"><label><span>Tamanho</span><span id="tamVal"></span></label><input type="range" id="tamLeg" min="60" max="150" step="1"></div>
+          </div>
+          <div class="campo"><label><span>Altura na tela</span><span id="yVal"></span></label><input type="range" id="yLeg" min="200" max="1820" step="5"></div>
+          <div class="linha" style="margin-bottom:10px">
+            <button class="mini" id="btNovoBloco">+ Bloco aqui</button>
+            <button class="mini" id="btDividir">Dividir no tempo atual</button>
+            <label class="linha mini" style="color:var(--fraco)"><input type="checkbox" id="efeitos"> Efeitos sonoros</label>
+          </div>
+          <div class="dica" style="padding:0 0 8px">Clique numa palavra pra pôr/tirar o destaque (números sempre ficam em destaque).</div>
+          <div class="lista" id="listaLeg"></div>
+        </div>
+        <!-- FACECAM -->
+        <div class="aba" id="aba-facecam">
+          <div id="semCam" class="aviso" style="display:none">Este corte não tem facecam (não achei webcam no vídeo).</div>
+          <div class="campo"><label class="linha" style="justify-content:flex-start;color:var(--texto)"><input type="checkbox" id="camVisivel"> Mostrar a facecam</label></div>
+          <div class="campo"><label><span>Largura</span><span id="camLargVal"></span></label><input type="range" id="camLarg" min="140" max="1080" step="2"></div>
+          <div class="campo"><label><span>Cantos arredondados</span><span id="camRaioVal"></span></label><input type="range" id="camRaio" min="0" max="120" step="1"></div>
+          <div class="campo"><label>Posição rápida</label>
+            <div class="linha">
+              <button class="mini" data-pos="se">↖ Cima esq.</button><button class="mini" data-pos="sd">↗ Cima dir.</button>
+              <button class="mini" data-pos="ie">↙ Baixo esq.</button><button class="mini" data-pos="id">↘ Baixo dir.</button>
+              <button class="mini" data-pos="padrao">Padrão</button>
+            </div>
+          </div>
+          <div class="bloco">
+            <h3>⚡ Facecam grande neste momento</h3>
+            <div class="campo"><label><span>Tamanho</span><span id="fgTamVal"></span></label><input type="range" id="fgTam" min="300" max="1080" step="10" value="760"></div>
+            <div class="campo"><label><span>Quanto tempo fica</span><span id="fgDurVal"></span></label><input type="range" id="fgDur" min="0.5" max="10" step="0.1" value="3"></div>
+            <div class="linha"><button class="mini primario" id="btFaceGrande">Aplicar aqui</button>
+              <label class="linha mini" style="color:var(--fraco)"><input type="checkbox" id="fgCentro" checked> no centro da tela</label></div>
+          </div>
+          <div class="bloco">
+            <h3>Facecam no tempo (pontos-chave)</h3>
+            <div class="dica" style="padding:0 0 8px">Com pontos-chave, a facecam muda de tamanho e lugar ao longo do vídeo: arrastar ou redimensionar na prévia mexe no ponto do tempo atual.</div>
+            <div class="linha" style="margin-bottom:8px"><button class="mini" id="btFaceKey">+ Ponto da facecam aqui</button><button class="mini" id="btFaceSemAnim">Tirar animação</button></div>
+            <div class="lista" id="listaFaceKeys"></div>
+          </div>
+        </div>
+        <!-- MÍDIA -->
+        <div class="aba" id="aba-midia">
+          <div class="linha" style="margin-bottom:10px">
+            <button class="mini primario" id="btAddImg">+ Imagem</button>
+            <button class="mini primario" id="btAddAudio">+ Áudio</button>
+            <button class="mini primario" id="btAddTexto">+ Texto</button>
+            <input type="file" id="arqImg" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+            <input type="file" id="arqAudio" accept="audio/*,.mp3,.wav,.m4a,.ogg" hidden>
+          </div>
+          <div class="dica" style="padding:0 0 8px">Tudo entra no tempo atual. Arraste imagens e textos na prévia; na linha do tempo, arraste o bloco pra mudar quando aparece (bordas mudam a duração).</div>
+          <div class="lista" id="listaMidia"></div>
+        </div>
+        <!-- CORTAR -->
+        <div class="aba" id="aba-cortar">
+          <div class="bloco">
+            <h3>✂ Tirar um trecho do corte</h3>
+            <div class="linha" style="margin-bottom:8px">
+              <button class="mini" id="btMarcaIni">[ Início aqui (I)</button>
+              <button class="mini" id="btMarcaFim">Fim aqui (O) ]</button>
+            </div>
+            <div class="dica" style="padding:0 0 8px" id="marcaTxt">Marque o início e o fim do trecho que quer tirar.</div>
+            <div class="linha">
+              <button class="mini primario" id="btRemover">✂ Remover trecho marcado (X)</button>
+            </div>
+          </div>
+          <div class="linha" style="margin-bottom:12px">
+            <button class="mini" id="btTirarAntes">Tirar tudo antes daqui</button>
+            <button class="mini" id="btTirarDepois">Tirar tudo depois daqui</button>
+          </div>
+          <div class="dica" style="padding:0 0 8px" id="durFinal"></div>
+          <div class="lista" id="listaRem"></div>
+        </div>
+        <!-- FINAL -->
+        <div class="aba" id="aba-final">
+          <div id="finalInfo" class="dica" style="padding:0 0 8px"></div>
+          <div class="linha" style="margin-bottom:10px">
+            <a id="btBaixar" class="mini" download style="display:none; background:var(--acento); color:#fff; border-radius:8px; padding:6px 12px; text-decoration:none; font-weight:600">⬇ Baixar MP4</a>
+            <button class="mini" id="btPasta">Abrir pasta dos cortes</button>
+          </div>
+          <video id="finalVideo" controls playsinline></video>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <div class="controles">
+      <button id="btPlay" style="min-width:70px">▶ Tocar</button>
+      <span id="tempo">0,0 / 0,0 s</span>
+      <span class="dica" style="padding:0">Clique pra ir; arraste blocos (legenda, mídia), bordas e pontos (◆ câmera, ● facecam). Trechos vermelhos foram removidos.</span>
+    </div>
+    <canvas id="tl"></canvas>
+  </footer>
+</div>
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const api = async (url, opt) => { const r = await fetch(url, opt); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.erro || r.statusText); return j; };
+const fmt = (s) => (+s).toFixed(1).replace(".", ",");
+const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+const suave = (u) => { u = clamp(u, 0, 1); return u * u * (3 - 2 * u); };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+let S = null;          // { slug, n, plano, ed, const }
+let projeto = null;
+let hist = [], futuro = [], salvarTimer = null, sel = { tipo: null, i: -1 }, marca = { ini: null, fim: null };
+const v = $("#v"), ov = $("#ov"), pv = $("#pv"), tl = $("#tl");
+const pctx = pv.getContext("2d"), octx = ov.getContext("2d"), tctx = tl.getContext("2d");
+const imagens = {}, audios = {};
+
+// ---------- pontos-chave genéricos (suave entre eles: o mesmo do render) ----------
+function chaveEm(ks, t, campos) {
+  ks = [...ks].sort((a, b) => a.t - b.t);
+  if (t <= ks[0].t) return campos.map(c => ks[0][c]);
+  if (t >= ks[ks.length - 1].t) return campos.map(c => ks[ks.length - 1][c]);
+  const j = ks.findIndex((k, i) => i < ks.length - 1 && k.t <= t && t <= ks[i + 1].t);
+  const a = ks[j], b = ks[j + 1], u = suave((t - a.t) / Math.max(b.t - a.t, 1e-6));
+  return campos.map(c => a[c] + (b[c] - a[c]) * u);
+}
+
+// ---------- câmera (o mesmo cálculo do enquadrar.py) ----------
+function cenaEm(t) { const cs = S.plano.cenas; return cs.find(c => c.ini <= t && t < c.fim) || cs[cs.length - 1]; }
+function zoomEvento(t) {
+  const cena = cenaEm(t), i = S.plano.cenas.indexOf(cena); let z = 1;
+  for (const e of S.plano.zooms) { if (e.cena !== i || e.t > t) continue; z = e.de + (e.para - e.de) * suave((t - e.t) / e.dur); }
+  return z;
+}
+function interp(pts, t, k) {
+  if (!pts.length) return 0;
+  if (t <= pts[0][0]) return pts[0][k];
+  if (t >= pts[pts.length - 1][0]) return pts[pts.length - 1][k];
+  let lo = 0, hi = pts.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pts[m][0] <= t) lo = m; else hi = m; }
+  const a = pts[lo], b = pts[hi], u = (t - a[0]) / Math.max(b[0] - a[0], 1e-6);
+  return a[k] + (b[k] - a[k]) * u;
+}
+function manual() { return S.ed.camera.modo === "manual" && S.ed.camera.chaves.length > 0; }
+function moldura(t, forcarAuto) {
+  const P = S.plano, W = P.W, H = P.H, cw = P.moldura_w;
+  const cena = cenaEm(t); let z = zoomEvento(t);
+  let cx = null, zc = 1, man = false;
+  if (!forcarAuto && manual()) { [cx, zc] = chaveEm(S.ed.camera.chaves, t, ["cx", "z"]); man = true; }
+  else if (cena.cam) { cx = interp(cena.cam, t, 1); zc = interp(cena.cam, t, 2); }
+  if (cx !== null) {
+    if (man) z = zc * (Math.abs(zc - 1) < 0.005 ? z : 1); else if (zc < 0.995) z = zc;
+    const w = Math.min(cw / z, W), h = H / z;
+    const x = clamp(cx * W - w / 2, 0, Math.max(W - w, 0));
+    const y = z >= 1 ? 0.45 * H * (1 - 1 / z) : (H - h) / 2;
+    return [x, y, w, h, z];
+  }
+  let x0 = cena.x0;
+  if (cena.caminho) x0 = interp(cena.caminho, t, 1);
+  const [fx, fy, fw, fh] = cena.face;
+  let fcx = fx + fw / 2;
+  if (cena.rosto_cx) fcx = interp(cena.rosto_cx, t, 1);
+  const px = clamp(fcx * W, x0 + 0.1 * cw, x0 + 0.9 * cw), py = clamp((fy + fh / 2) * H, 0, H);
+  return [px + (x0 - px) / z, py - py / z, cw / z, H / z, z];
+}
+function paraManual() {
+  if (S.ed.camera.modo === "manual" && S.ed.camera.chaves.length) return;
+  let pts = [];
+  for (let t = 0; t <= S.plano.dur + 1e-6; t += 0.5) {
+    const [x, , w, , z] = moldura(t, true);
+    pts.push({ t: +t.toFixed(2), cx: +((x + w / 2) / S.plano.W).toFixed(4), z: +Math.min(z, 1).toFixed(3) });
+  }
+  let mudou = true;
+  while (mudou && pts.length > 2) {
+    mudou = false;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const a = pts[i - 1], b = pts[i + 1], u = (pts[i].t - a.t) / (b.t - a.t);
+      if (Math.abs(a.cx + (b.cx - a.cx) * u - pts[i].cx) < 0.008 && Math.abs(a.z + (b.z - a.z) * u - pts[i].z) < 0.02) { pts.splice(i, 1); mudou = true; break; }
+    }
+  }
+  S.ed.camera = { modo: "manual", chaves: pts };
+}
+function chaveNoTempo(ks, t, criar, valores) {
+  let i = ks.findIndex(k => Math.abs(k.t - t) < 0.12);
+  if (i < 0 && criar) { ks.push({ t: +t.toFixed(2), ...valores() }); ks.sort((a, b) => a.t - b.t); i = ks.findIndex(k => Math.abs(k.t - t) < 0.12); }
+  return i;
+}
+const camChave = (t, criar) => chaveNoTempo(S.ed.camera.chaves, t, criar, () => { const [cx, z] = chaveEm(S.ed.camera.chaves, t, ["cx", "z"]); return { cx: +cx.toFixed(4), z: +z.toFixed(3) }; });
+
+// ---------- facecam ----------
+function temCam() { return !!(S.plano.gameplay && S.plano.gameplay.webcam); }
+function aspectoCam() { const [, , cw, ch] = S.plano.gameplay.webcam; return (ch * S.plano.H) / Math.max(cw * S.plano.W, 1); }
+function camBase() {
+  const fc = S.ed.facecam, C = S.const;
+  const larg = Math.round(clamp(fc.larg || C.CAM_LARG, 80, 1080) / 2) * 2;
+  const alt = Math.round(larg * aspectoCam() / 2) * 2;
+  let x = fc.x, y = fc.y;
+  if (x === null || x === undefined) x = 1080 - C.CAM_MARGEM - larg;
+  if (y === null || y === undefined) y = 1920 - C.CAM_BAIXO - alt;
+  return { x, y, larg };
+}
+function camBox(t) {
+  if (!temCam()) return null;
+  const fc = S.ed.facecam, C = S.const, ks = fc.chaves || [];
+  let x, y, larg;
+  if (ks.length) [x, y, larg] = chaveEm(ks, t, ["x", "y", "larg"]); else ({ x, y, larg } = camBase());
+  larg = Math.round(clamp(larg, 40, 1080) / 2) * 2;
+  const alt = Math.round(larg * aspectoCam() / 2) * 2, base = camBase().larg;
+  const r = (fc.raio ?? C.CAM_RAIO) * (ks.length ? larg / Math.max(base, 1) : 1);
+  return { x, y, w: larg, h: alt, r: Math.max(0, Math.min(r, larg / 2 - 1, alt / 2 - 1)), src: S.plano.gameplay.webcam };
+}
+const faceChave = (t, criar) => { S.ed.facecam.chaves = S.ed.facecam.chaves || []; return chaveNoTempo(S.ed.facecam.chaves, t, criar, () => { const b = camBox(t); return { x: Math.round(b.x), y: Math.round(b.y), larg: b.w }; }); };
+
+// ---------- legenda ----------
+const limpa = (p) => p.replace(/[,;:.…]+$/u, "").toUpperCase();
+function grupoEm(t) { return S.ed.legenda.grupos.findIndex(g => g.ini <= t && t < g.fim); }
+function medidas(g) {
+  const tam = S.ed.legenda.tam, pal = String(g.texto).split(/\s+/).map(limpa).filter(Boolean);
+  pctx.font = `${tam}px VCFonte, "Arial Black", sans-serif`;
+  const larg = pctx.measureText(pal.join(" ")).width + 14 * pal.length;
+  return { pal, fs: larg <= 960 ? tam : Math.floor(tam * 960 / larg) };
+}
+
+// ---------- mídia ----------
+function img(arq) {
+  if (!imagens[arq]) { const im = new Image(); im.src = `/midia-extra/${encodeURIComponent(S.slug)}/${encodeURIComponent(arq)}`; imagens[arq] = im; }
+  return imagens[arq];
+}
+function caixaMidia(m) {      // retângulo (px do vertical 1080x1920) de imagem/texto
+  if (m.tipo === "imagem") { const im = img(m.arquivo), ar = im.naturalWidth ? im.naturalHeight / im.naturalWidth : (m.h && m.w ? m.h / m.w : 1);
+    const w = m.larg, h = w * ar; return { x: m.x - w / 2, y: m.y - h / 2, w, h }; }
+  if (m.tipo === "texto") { const linhas = String(m.texto || "").split("\n"); pctx.font = `${m.tam}px VCFonte, "Arial Black", sans-serif`;
+    const lw = Math.max(...linhas.map(l => pctx.measureText(l || " ").width)); const borda = Math.max(2, m.tam / 12);
+    const pad = m.fundo ? m.tam * 0.35 : borda + 2; const w = lw + 2 * pad + 2 * borda, h = m.tam * 1.2 * linhas.length + 2 * pad;
+    return { x: m.x - w / 2, y: m.y - h / 2, w, h, pad, lw, borda, linhas }; }
+  return null;
+}
+function opacidadeEm(m, t) { let op = m.opacidade ?? 1; if ((m.anim || "fade") === "fade") op *= Math.min(1, (t - m.ini) / 0.15, (m.fim - t) / 0.15); return clamp(op, 0, 1); }
+function desenhaMidia(t) {
+  for (const m of S.ed.midias || []) {
+    if (m.tipo === "audio" || !(m.ini <= t && t < m.fim)) continue;
+    const b = caixaMidia(m), op = opacidadeEm(m, t); pctx.save(); pctx.globalAlpha = op;
+    if (m.tipo === "imagem") { const im = img(m.arquivo); if (im.complete && im.naturalWidth) pctx.drawImage(im, b.x * K, b.y * K, b.w * K, b.h * K); }
+    else {
+      if (m.fundo) { pctx.fillStyle = m.cor_fundo || "#000"; pctx.globalAlpha = op * 0.9; pctx.beginPath(); pctx.roundRect(b.x * K, b.y * K, b.w * K, b.h * K, m.tam * 0.3 * K); pctx.fill(); pctx.globalAlpha = op; }
+      pctx.font = `${m.tam * K}px VCFonte, "Arial Black", sans-serif`; pctx.textAlign = "center"; pctx.textBaseline = "middle"; pctx.lineJoin = "round";
+      b.linhas.forEach((l, i) => { const yy = (b.y + b.pad + m.tam * 1.2 * (i + 0.5)) * K;
+        if (!m.fundo) { pctx.lineWidth = b.borda * 2 * K; pctx.strokeStyle = "#000"; pctx.strokeText(l, m.x * K, yy); }
+        pctx.fillStyle = m.cor || "#fff"; pctx.fillText(l, m.x * K, yy); });
+    }
+    pctx.restore();
+    if (sel.tipo === "midia" && S.ed.midias[sel.i] === m) { pctx.strokeStyle = "rgba(76,141,255,.9)"; pctx.setLineDash([6, 4]); pctx.lineWidth = 1.5; pctx.strokeRect(b.x * K, b.y * K, b.w * K, b.h * K); pctx.setLineDash([]);
+      if (m.tipo === "imagem") { pctx.fillStyle = "#4c8dff"; pctx.fillRect((b.x + b.w) * K - 5, (b.y + b.h) * K - 5, 10, 10); } }
+  }
+}
+const dbGanho = (db) => Math.pow(10, (db || 0) / 20);
+function sincronizaAudios() {
+  const t = v.currentTime;
+  for (const m of S.ed.midias || []) {
+    if (m.tipo !== "audio") continue;
+    let a = audios[m.id];
+    if (!a) { a = audios[m.id] = new Audio(`/midia-extra/${encodeURIComponent(S.slug)}/${encodeURIComponent(m.arquivo)}`); a.preload = "auto"; }
+    const d = m.dur || m.arqDur || 9999, dentro = !v.paused && t >= m.t && t < m.t + d && !removido(t);
+    a.volume = clamp(dbGanho(m.volume_db), 0, 1);
+    if (dentro) { const alvo = (m.ini_arq || 0) + (t - m.t); if (a.paused || Math.abs(a.currentTime - alvo) > 0.3) { a.currentTime = alvo; a.play().catch(() => {}); } }
+    else if (!a.paused) a.pause();
+  }
+}
+
+// ---------- trechos removidos ----------
+function remover() { return S.ed.remover || (S.ed.remover = []); }
+function removido(t) { return remover().find(([a, b]) => t >= a && t < b); }
+function juntarRemovidos() {
+  const rs = remover().map(r => [clamp(+r[0], 0, S.plano.dur), clamp(+r[1], 0, S.plano.dur)]).filter(r => r[1] - r[0] >= 0.05).sort((a, b) => a[0] - b[0]);
+  const out = []; for (const r of rs) { if (out.length && r[0] <= out[out.length - 1][1]) out[out.length - 1][1] = Math.max(out[out.length - 1][1], r[1]); else out.push(r); }
+  S.ed.remover = out.map(r => [+r[0].toFixed(2), +r[1].toFixed(2)]);
+}
+function durFinal() { return S.plano.dur - remover().reduce((s, [a, b]) => s + (b - a), 0); }
+
+// ---------- desenho ----------
+const K = 0.5;
+function desenhaPrevia() {
+  if (!S || !v.videoWidth) return;
+  const t = v.currentTime, P = S.plano, kv = v.videoWidth / P.W;
+  const [x, y, w, h] = moldura(t), s = 540 / w;
+  pctx.setTransform(1, 0, 0, 1, 0, 0); pctx.globalAlpha = 1;
+  pctx.fillStyle = "#000"; pctx.fillRect(0, 0, 540, 960);
+  const sy0 = Math.max(0, y), sy1 = Math.min(P.H, y + h);
+  const dy0 = (sy0 - y) * s, dy1 = (sy1 - y) * s;
+  if (dy0 > 0.5 || dy1 < 959.5) {
+    pctx.filter = "blur(18px) brightness(0.55)";
+    pctx.drawImage(v, x * kv, sy0 * kv, w * kv, (sy1 - sy0) * kv, -40, -40, 620, 1040);
+    pctx.filter = "none";
+  }
+  pctx.drawImage(v, x * kv, sy0 * kv, w * kv, (sy1 - sy0) * kv, 0, dy0, 540, dy1 - dy0);
+  const cb = camBox(t);
+  if (cb && S.ed.facecam.visivel !== false) {
+    const [sx, sy, sw, sh] = cb.src;
+    pctx.save(); pctx.beginPath(); pctx.roundRect(cb.x * K, cb.y * K, cb.w * K, cb.h * K, cb.r * K); pctx.clip();
+    pctx.drawImage(v, sx * v.videoWidth, sy * v.videoHeight, sw * v.videoWidth, sh * v.videoHeight, cb.x * K, cb.y * K, cb.w * K, cb.h * K);
+    pctx.restore();
+    if ((arrasto && arrasto.tipo.startsWith("cam")) || hover === "cam" || hover === "camTam") {
+      pctx.strokeStyle = "rgba(255,255,255,.7)"; pctx.setLineDash([6, 4]); pctx.lineWidth = 1.5;
+      pctx.strokeRect(cb.x * K, cb.y * K, cb.w * K, cb.h * K); pctx.setLineDash([]);
+      pctx.fillStyle = "#fff"; pctx.fillRect(cb.x * K - 5, (cb.y + cb.h) * K - 5, 10, 10);
+    }
+  }
+  desenhaMidia(t);
+  const gi = grupoEm(t);
+  if (gi >= 0) {
+    const g = S.ed.legenda.grupos[gi], { pal, fs } = medidas(g);
+    const enf = new Set((g.enfase || []).map(limpa));
+    const an = clamp((t - g.ini) / 0.09, 0, 1), escl = 0.86 + 0.14 * an;
+    const yy = (g.y ?? S.ed.legenda.y) * K, tamPx = fs * K;
+    pctx.save(); pctx.translate(270, yy); pctx.scale(escl, escl);
+    pctx.font = `${tamPx}px VCFonte, "Arial Black", sans-serif`; pctx.textBaseline = "middle"; pctx.textAlign = "left"; pctx.lineJoin = "round";
+    const espc = pctx.measureText(" ").width, larguras = pal.map(p => pctx.measureText(p).width);
+    const total = larguras.reduce((a, b) => a + b, 0) + espc * (pal.length - 1);
+    let cx = -total / 2;
+    pal.forEach((p, i) => {
+      pctx.lineWidth = 7 * 2 * K; pctx.strokeStyle = "rgba(0,0,0,.55)"; pctx.strokeText(p, cx + 3 * K, 3 * K);
+      pctx.strokeStyle = "#000"; pctx.strokeText(p, cx, 0);
+      pctx.fillStyle = (enf.has(p) || /\d/.test(p)) ? S.ed.legenda.cor : "#fff"; pctx.fillText(p, cx, 0);
+      cx += larguras[i] + espc;
+    });
+    pctx.restore();
+  }
+  if (arrasto && arrasto.tipo === "leg") {
+    pctx.strokeStyle = "rgba(255,176,32,.8)"; pctx.setLineDash([6, 4]);
+    pctx.beginPath(); pctx.moveTo(0, S.ed.legenda.y * K); pctx.lineTo(540, S.ed.legenda.y * K); pctx.stroke(); pctx.setLineDash([]);
+  }
+  if (removido(t)) { pctx.fillStyle = "rgba(255,77,61,.35)"; pctx.fillRect(0, 0, 540, 960); pctx.fillStyle = "#fff"; pctx.font = "600 22px system-ui"; pctx.textAlign = "center"; pctx.fillText("✂ trecho removido", 270, 480); pctx.textAlign = "left"; }
+}
+function tamanhoCanvas(c) {
+  const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  if (c.width !== Math.round(r.width * d) || c.height !== Math.round(r.height * d)) { c.width = Math.round(r.width * d); c.height = Math.round(r.height * d); }
+  return [r.width, r.height, d];
+}
+function areaVideo() {
+  const [cw, ch] = tamanhoCanvas(ov); const ar = S.plano.W / S.plano.H;
+  let w = cw, h = cw / ar; if (h > ch) { h = ch; w = ch * ar; }
+  return { ox: (cw - w) / 2, oy: (ch - h) / 2, w, h };
+}
+function desenhaOverlay() {
+  if (!S) return;
+  const [cw, ch, d] = tamanhoCanvas(ov); octx.setTransform(d, 0, 0, d, 0, 0); octx.clearRect(0, 0, cw, ch);
+  const a = areaVideo(), P = S.plano, k = a.w / P.W;
+  const [x, y, w, h, z] = moldura(v.currentTime);
+  const rx = a.ox + x * k, ry = a.oy + Math.max(0, y) * k, rw = w * k, rh = Math.min(h, P.H) * k;
+  octx.fillStyle = "rgba(0,0,0,.55)";
+  octx.fillRect(a.ox, a.oy, rx - a.ox, a.h); octx.fillRect(rx + rw, a.oy, a.ox + a.w - rx - rw, a.h);
+  octx.fillRect(rx, a.oy, rw, ry - a.oy); octx.fillRect(rx, ry + rh, rw, a.oy + a.h - ry - rh);
+  octx.strokeStyle = manual() ? "#ffb020" : "#ff4d3d"; octx.lineWidth = 2; octx.strokeRect(rx, ry, rw, rh);
+  octx.fillStyle = octx.strokeStyle; octx.font = "600 12px system-ui";
+  octx.fillText(`${manual() ? "MANUAL" : "AUTO"} · ${z.toFixed(2).replace(".", ",")}×`, rx + 6, ry + 16);
+  const g = P.gameplay || {};
+  if (g.webcam) { const [wx, wy, ww, wh] = g.webcam; octx.setLineDash([4, 4]); octx.strokeStyle = "rgba(76,141,255,.8)"; octx.lineWidth = 1;
+    octx.strokeRect(a.ox + wx * a.w, a.oy + wy * a.h, ww * a.w, wh * a.h); octx.setLineDash([]); }
+}
+// linha do tempo
+const TL = { leg: [22, 46], cam: [52, 72], face: [78, 94], mid: [100, 146] };
+function tx(t, W) { return 8 + (t / S.plano.dur) * (W - 16); }
+function txInv(px, W) { return clamp((px - 8) / (W - 16) * S.plano.dur, 0, S.plano.dur); }
+function faixasMidia() {      // distribui os itens de mídia em até 3 faixas sem sobrepor
+  const lanes = [[], [], []], out = new Map();
+  (S.ed.midias || []).forEach((m, i) => {
+    const a = m.tipo === "audio" ? m.t : m.ini, b = m.tipo === "audio" ? m.t + (m.dur || m.arqDur || 3) : m.fim;
+    let l = lanes.findIndex(L => L.every(([x, y]) => b <= x || a >= y)); if (l < 0) l = 2;
+    lanes[l].push([a, b]); out.set(i, { a, b, l });
+  });
+  return out;
+}
+function desenhaTL() {
+  if (!S) return;
+  const [W, H, d] = tamanhoCanvas(tl); tctx.setTransform(d, 0, 0, d, 0, 0); tctx.clearRect(0, 0, W, H);
+  tctx.font = "11px system-ui";
+  const passo = S.plano.dur > 40 ? 5 : 2;
+  for (let t = 0; t <= S.plano.dur; t += 1) {
+    const x = tx(t, W); tctx.fillStyle = t % passo === 0 ? "#3a4050" : "#252a35"; tctx.fillRect(x, 0, 1, t % passo === 0 ? 10 : 5);
+    if (t % passo === 0) { tctx.fillStyle = "#8b93a4"; tctx.fillText(`${t}s`, x + 3, 11); }
+  }
+  tctx.fillStyle = "rgba(255,255,255,.04)";
+  for (const [a, b] of [TL.leg, TL.cam, TL.face, TL.mid]) tctx.fillRect(8, a, W - 16, b - a);
+  tctx.fillStyle = "#8b93a4"; tctx.font = "9.5px system-ui";
+  tctx.fillText("LEGENDA", 10, TL.leg[0] - 1); tctx.fillText("CÂMERA", 10, TL.cam[0] - 1); tctx.fillText("FACECAM", 10, TL.face[0] - 1); tctx.fillText("MÍDIA", 10, TL.mid[0] - 1);
+  const n = Math.max(2, Math.floor(W / 3));
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1) * S.plano.dur, z = moldura(t)[4];
+    if (Math.abs(z - 1) > 0.02) { tctx.fillStyle = z < 1 ? "rgba(76,141,255,.35)" : "rgba(255,176,32,.25)"; tctx.fillRect(tx(t, W), TL.cam[1] - 5, Math.ceil(W / n) + 1, 5); }
+  }
+  tctx.font = "11px system-ui";
+  S.ed.legenda.grupos.forEach((g, i) => {
+    const x0 = tx(g.ini, W), x1 = tx(g.fim, W);
+    tctx.fillStyle = sel.tipo === "leg" && sel.i === i ? "#ff4d3d" : "#39404f";
+    tctx.beginPath(); tctx.roundRect(x0, TL.leg[0] + 2, Math.max(2, x1 - x0), TL.leg[1] - TL.leg[0] - 4, 4); tctx.fill();
+    if (x1 - x0 > 24) { tctx.save(); tctx.beginPath(); tctx.rect(x0, TL.leg[0], x1 - x0 - 2, 30); tctx.clip();
+      tctx.fillStyle = "#e6e8ee"; tctx.fillText(g.texto, x0 + 4, TL.leg[0] + 16); tctx.restore(); }
+  });
+  if (S.ed.camera.modo === "manual") S.ed.camera.chaves.forEach((k, i) => {
+    const x = tx(k.t, W), y = (TL.cam[0] + TL.cam[1]) / 2 - 2;
+    tctx.fillStyle = sel.tipo === "key" && sel.i === i ? "#fff" : "#ffb020";
+    tctx.beginPath(); tctx.moveTo(x, y - 6); tctx.lineTo(x + 6, y); tctx.lineTo(x, y + 6); tctx.lineTo(x - 6, y); tctx.closePath(); tctx.fill();
+  }); else { tctx.fillStyle = "#8b93a4"; tctx.fillText("automática (segue os personagens)", 70, (TL.cam[0] + TL.cam[1]) / 2 + 2); }
+  const fks = S.ed.facecam.chaves || [];
+  if (fks.length) fks.forEach((k, i) => { tctx.fillStyle = sel.tipo === "fkey" && sel.i === i ? "#fff" : "#4c8dff"; tctx.beginPath(); tctx.arc(tx(k.t, W), (TL.face[0] + TL.face[1]) / 2, 5, 0, 7); tctx.fill(); });
+  else { tctx.fillStyle = "#8b93a4"; tctx.fillText(temCam() ? "parada (sem animação)" : "sem facecam", 70, (TL.face[0] + TL.face[1]) / 2 + 4); }
+  const fx = faixasMidia(), lh = (TL.mid[1] - TL.mid[0]) / 3;
+  (S.ed.midias || []).forEach((m, i) => {
+    const { a, b, l } = fx.get(i), x0 = tx(a, W), x1 = tx(Math.min(b, S.plano.dur), W), y0 = TL.mid[0] + l * lh + 1;
+    tctx.fillStyle = sel.tipo === "midia" && sel.i === i ? "#ff4d3d" : m.tipo === "audio" ? "#1f7a4d" : m.tipo === "texto" ? "#6b4fc8" : "#2f5fb3";
+    tctx.beginPath(); tctx.roundRect(x0, y0, Math.max(3, x1 - x0), lh - 2, 3); tctx.fill();
+    if (x1 - x0 > 30) { tctx.save(); tctx.beginPath(); tctx.rect(x0, y0, x1 - x0 - 2, lh); tctx.clip(); tctx.fillStyle = "#fff"; tctx.font = "10.5px system-ui";
+      tctx.fillText((m.tipo === "audio" ? "♪ " : m.tipo === "texto" ? "T " : "▣ ") + (m.tipo === "texto" ? m.texto : m.nome || m.arquivo), x0 + 4, y0 + lh - 5); tctx.restore(); }
+  });
+  for (const [a, b] of remover()) { const x0 = tx(a, W), x1 = tx(b, W); tctx.fillStyle = "rgba(255,77,61,.28)"; tctx.fillRect(x0, 14, x1 - x0, H - 14);
+    tctx.strokeStyle = "rgba(255,77,61,.9)"; tctx.lineWidth = 1; tctx.strokeRect(x0 + .5, 14.5, x1 - x0 - 1, H - 15); }
+  if (marca.ini !== null || marca.fim !== null) {
+    const a = marca.ini ?? 0, b = marca.fim ?? S.plano.dur; tctx.fillStyle = "rgba(255,176,32,.16)"; tctx.fillRect(tx(a, W), 14, tx(b, W) - tx(a, W), H - 14);
+    tctx.fillStyle = "#ffb020"; if (marca.ini !== null) tctx.fillRect(tx(marca.ini, W) - 1, 14, 2, H - 14); if (marca.fim !== null) tctx.fillRect(tx(marca.fim, W) - 1, 14, 2, H - 14);
+  }
+  const xp = tx(v.currentTime, W); tctx.fillStyle = "#ff4d3d"; tctx.fillRect(xp - 1, 0, 2, H);
+}
+function loop() {
+  if (S) {
+    if (!v.paused) { const r = removido(v.currentTime); if (r) v.currentTime = Math.min(r[1] + 0.01, S.plano.dur); }
+    desenhaPrevia(); desenhaOverlay(); desenhaTL(); sincronizaAudios();
+    $("#tempo").textContent = `${fmt(v.currentTime)} / ${fmt(S.plano.dur)} s` + (remover().length ? ` · final ${fmt(durFinal())} s` : "");
+    marcarAgora();
+  }
+  requestAnimationFrame(loop);
+}
+
+// ---------- estado, desfazer, salvar ----------
+let ultimo = null;
+function snapshot() { return JSON.stringify(S.ed); }
+function mudou(semHist) {
+  if (!semHist) { hist.push(ultimo); if (hist.length > 150) hist.shift(); futuro = []; }
+  ultimo = snapshot();
+  estado("alterações não salvas…");
+  clearTimeout(salvarTimer); salvarTimer = setTimeout(salvar, 700);
+  atualizaPainel();
+}
+function antesDe() { return snapshot(); }
+function confirma(antes) { hist.push(antes); if (hist.length > 150) hist.shift(); futuro = []; mudou(true); }
+function desfazer() { if (!hist.length) return; futuro.push(snapshot()); S.ed = JSON.parse(hist.pop()); ultimo = snapshot(); mudou(true); }
+function refazer() { if (!futuro.length) return; hist.push(snapshot()); S.ed = JSON.parse(futuro.pop()); ultimo = snapshot(); mudou(true); }
+async function salvar() {
+  try { await api(`/api/salvar/${S.slug}/${S.n}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: snapshot() });
+    estado("salvo ✓ (falta renderizar pra ir pro vídeo final)", "ok"); marcarEditado(true); }
+  catch (e) { estado("erro ao salvar: " + e.message, "erro"); }
+}
+function estado(msg, cls) { const e = $("#estado"); e.textContent = msg; e.title = msg; e.className = cls || ""; }
+
+// ---------- painéis ----------
+function inputNum(val, passo, titulo, min, max) { return `<input type="number" step="${passo}" ${min !== undefined ? `min="${min}"` : ""} ${max !== undefined ? `max="${max}"` : ""} value="${val}" title="${titulo}">`; }
+function atualizaPainel() {
+  if (!S) return;
+  const c = S.ed.camera;
+  $("#modoAuto").classList.toggle("ativo", c.modo !== "manual"); $("#modoManual").classList.toggle("ativo", c.modo === "manual");
+  $("#camAutoInfo").style.display = c.modo === "manual" ? "none" : "block";
+  $("#zrVal").textContent = (+$("#zrInt").value).toFixed(2).replace(".", ",") + "×"; $("#zrDurVal").textContent = fmt($("#zrDur").value) + " s";
+  atualizaZoomUI();
+  const lk = $("#listaKeys"); lk.innerHTML = "";
+  if (c.modo === "manual") c.chaves.forEach((k, i) => {
+    const d = document.createElement("div"); d.className = "item" + (sel.tipo === "key" && sel.i === i ? " sel" : "");
+    d.innerHTML = `<div class="topo" style="margin:0"><b style="color:var(--acento2)">◆</b>${inputNum(k.t, 0.1, "tempo (s)", 0)} s
+      <span style="color:var(--fraco)">x</span>${inputNum(k.cx, 0.01, "centro (0 a 1)", 0, 1)}
+      <span style="color:var(--fraco)">z</span>${inputNum(k.z, 0.01, "zoom", 0.5, 2)}
+      <button class="x mini" title="Apagar">✕</button></div>`;
+    const [it, ic, iz] = d.querySelectorAll("input");
+    it.onchange = () => { k.t = clamp(+it.value, 0, S.plano.dur); c.chaves.sort((a, b) => a.t - b.t); mudou(); };
+    ic.onchange = () => { k.cx = clamp(+ic.value, 0, 1); mudou(); };
+    iz.onchange = () => { k.z = clamp(+iz.value, 0.5, 2); mudou(); };
+    d.querySelector(".x").onclick = () => { c.chaves.splice(i, 1); sel = { tipo: null, i: -1 }; mudou(); };
+    d.onclick = (e) => { if (["INPUT", "BUTTON"].includes(e.target.tagName)) return; sel = { tipo: "key", i }; v.currentTime = k.t; atualizaPainel(); };
+    lk.appendChild(d);
+  });
+  const L = S.ed.legenda;
+  $("#corLeg").value = L.cor; $("#tamLeg").value = L.tam; $("#tamVal").textContent = L.tam + " px";
+  $("#yLeg").value = L.y; $("#yVal").textContent = L.y + " px"; $("#efeitos").checked = S.ed.efeitos !== false;
+  desenhaListaLeg();
+  // facecam
+  const tc = temCam();
+  $("#semCam").style.display = tc ? "none" : "block";
+  ["#camVisivel", "#camLarg", "#camRaio", "#btFaceGrande", "#btFaceKey", "#btFaceSemAnim"].forEach(s => $(s).disabled = !tc);
+  $("#camVisivel").checked = S.ed.facecam.visivel !== false;
+  const cb = tc ? camBox(v.currentTime) : null;
+  $("#camLarg").value = cb ? cb.w : 340; $("#camLargVal").textContent = (cb ? cb.w : 340) + " px";
+  $("#camRaio").value = S.ed.facecam.raio ?? S.const.CAM_RAIO; $("#camRaioVal").textContent = (S.ed.facecam.raio ?? S.const.CAM_RAIO) + " px";
+  $("#fgTamVal").textContent = $("#fgTam").value + " px"; $("#fgDurVal").textContent = fmt($("#fgDur").value) + " s";
+  const lf = $("#listaFaceKeys"); lf.innerHTML = "";
+  (S.ed.facecam.chaves || []).forEach((k, i) => {
+    const d = document.createElement("div"); d.className = "item" + (sel.tipo === "fkey" && sel.i === i ? " sel" : "");
+    d.innerHTML = `<div class="topo" style="margin:0"><b style="color:var(--azul)">●</b>${inputNum(k.t, 0.1, "tempo (s)", 0)} s
+      <span style="color:var(--fraco)">larg</span>${inputNum(k.larg, 2, "largura (px)", 40, 1080)}<button class="x mini" title="Apagar">✕</button></div>`;
+    const [it, il] = d.querySelectorAll("input");
+    it.onchange = () => { k.t = clamp(+it.value, 0, S.plano.dur); S.ed.facecam.chaves.sort((a, b) => a.t - b.t); mudou(); };
+    il.onchange = () => { k.larg = clamp(+il.value, 40, 1080); mudou(); };
+    d.querySelector(".x").onclick = () => { S.ed.facecam.chaves.splice(i, 1); sel = { tipo: null, i: -1 }; mudou(); };
+    d.onclick = (e) => { if (["INPUT", "BUTTON"].includes(e.target.tagName)) return; sel = { tipo: "fkey", i }; v.currentTime = k.t; atualizaPainel(); };
+    lf.appendChild(d);
+  });
+  desenhaListaMidia();
+  // cortar
+  $("#marcaTxt").textContent = marca.ini === null && marca.fim === null ? "Marque o início e o fim do trecho que quer tirar." :
+    `Marcado: ${marca.ini === null ? "?" : fmt(marca.ini) + " s"} até ${marca.fim === null ? "?" : fmt(marca.fim) + " s"}`;
+  $("#durFinal").textContent = `Duração: ${fmt(S.plano.dur)} s no corte original · ${fmt(durFinal())} s no vídeo final` +
+    (remover().length ? ". Os trechos abaixo (vermelho na linha do tempo) saem quando você clicar em Renderizar corte; na prévia, o play já pula eles." : "");
+  const lr = $("#listaRem"); lr.innerHTML = "";
+  remover().forEach((r, i) => {
+    const d = document.createElement("div"); d.className = "item";
+    d.innerHTML = `<div class="topo" style="margin:0"><b style="color:var(--acento)">✂</b>${inputNum(r[0], 0.05, "início", 0)} – ${inputNum(r[1], 0.05, "fim", 0)} s
+      <span class="tag">${fmt(r[1] - r[0])} s</span><button class="mini ir">▶</button><button class="x mini" title="Devolver este trecho">↺ Devolver</button></div>`;
+    const [ia, ib] = d.querySelectorAll("input");
+    ia.onchange = () => { r[0] = clamp(+ia.value, 0, r[1] - 0.05); juntarRemovidos(); mudou(); };
+    ib.onchange = () => { r[1] = clamp(+ib.value, r[0] + 0.05, S.plano.dur); juntarRemovidos(); mudou(); };
+    d.querySelector(".ir").onclick = () => { v.currentTime = Math.max(0, r[0] - 1.5); };
+    d.querySelector(".x").onclick = () => { remover().splice(i, 1); mudou(); };
+    lr.appendChild(d);
+  });
+}
+let listaAssinatura = "";
+function desenhaListaLeg() {
+  const L = S.ed.legenda, assin = JSON.stringify([L.grupos, sel]);
+  if (assin === listaAssinatura) return; listaAssinatura = assin;
+  const el = $("#listaLeg"), foco = document.activeElement, focoId = foco && foco.dataset ? foco.dataset.id : null;
+  el.innerHTML = "";
+  L.grupos.forEach((g, i) => {
+    const d = document.createElement("div"); d.className = "item" + (sel.tipo === "leg" && sel.i === i ? " sel" : ""); d.dataset.i = i;
+    d.innerHTML = `<div class="topo"><button class="mini ir" title="Ir pra este bloco">▶</button>
+      <input type="number" step="0.05" min="0" value="${g.ini.toFixed(2)}" data-id="ini${i}" title="começa (s)"> –
+      <input type="number" step="0.05" min="0" value="${g.fim.toFixed(2)}" data-id="fim${i}" title="termina (s)">
+      <button class="x mini" title="Apagar bloco">✕</button></div>
+      <input type="text" class="leg" value="" data-id="txt${i}"><div class="chips"></div>`;
+    const [ii, ifm, itx] = d.querySelectorAll("input");
+    itx.value = g.texto;
+    ii.onchange = () => { g.ini = clamp(+ii.value, 0, g.fim - 0.05); mudou(); };
+    ifm.onchange = () => { g.fim = clamp(+ifm.value, g.ini + 0.05, S.plano.dur); mudou(); };
+    itx.oninput = () => { g.texto = itx.value.toUpperCase(); const enf = new Set(g.texto.split(/\s+/).map(limpa)); g.enfase = (g.enfase || []).filter(p => enf.has(limpa(p))); mudou(); };
+    d.querySelector(".x").onclick = () => { L.grupos.splice(i, 1); sel = { tipo: null, i: -1 }; mudou(); };
+    d.querySelector(".ir").onclick = () => { v.currentTime = g.ini + 0.01; sel = { tipo: "leg", i }; listaAssinatura = ""; desenhaListaLeg(); };
+    const chips = d.querySelector(".chips");
+    String(g.texto).split(/\s+/).map(limpa).filter(Boolean).forEach(p => {
+      const c = document.createElement("span"); const on = (g.enfase || []).map(limpa).includes(p) || /\d/.test(p);
+      c.className = "chip" + (on ? " on" : ""); c.textContent = p;
+      c.onclick = () => { if (/\d/.test(p)) return; const e = (g.enfase || []).map(limpa); g.enfase = e.includes(p) ? e.filter(x => x !== p) : [...e, p]; mudou(); };
+      chips.appendChild(c);
+    });
+    el.appendChild(d);
+  });
+  if (focoId) { const f = el.querySelector(`[data-id="${focoId}"]`); if (f) { f.focus(); if (f.type === "text") f.setSelectionRange(f.value.length, f.value.length); } }
+}
+let midiaAssinatura = "";
+function desenhaListaMidia() {
+  const ms = S.ed.midias || [], assin = JSON.stringify([ms, sel]);
+  if (assin === midiaAssinatura) return; midiaAssinatura = assin;
+  const el = $("#listaMidia"), foco = document.activeElement, focoId = foco && foco.dataset ? foco.dataset.id : null;
+  el.innerHTML = ms.length ? "" : `<div class="dica" style="padding:0">Nenhuma mídia ainda.</div>`;
+  ms.forEach((m, i) => {
+    const d = document.createElement("div"); d.className = "item" + (sel.tipo === "midia" && sel.i === i ? " sel" : "");
+    const icone = m.tipo === "audio" ? "♪" : m.tipo === "texto" ? "T" : "▣";
+    let corpo = "";
+    if (m.tipo === "audio") {
+      corpo = `<div class="topo"><b>${icone}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.nome || m.arquivo)}</span><button class="mini ir">▶</button><button class="x mini">✕</button></div>
+        <div class="linha" style="margin-bottom:6px"><span class="tag">começa</span>${inputNum(m.t, 0.1, "começa em (s)", 0)}
+        <span class="tag">dura</span>${inputNum(m.dur ?? "", 0.1, "duração (vazio = até acabar)", 0)}<span class="tag">pula</span>${inputNum(m.ini_arq || 0, 0.1, "começar do segundo X do áudio", 0)}</div>
+        <div class="campo" style="margin:0"><label><span>Volume</span><span>${(m.volume_db ?? -6).toFixed(0)} dB</span></label><input type="range" min="-30" max="6" step="1" value="${m.volume_db ?? -6}" data-id="vol${m.id}"></div>`;
+    } else {
+      corpo = `<div class="topo"><b>${icone}</b>${inputNum(m.ini.toFixed(2), 0.05, "aparece (s)", 0)} – ${inputNum(m.fim.toFixed(2), 0.05, "some (s)", 0)}<button class="mini ir">▶</button><button class="x mini">✕</button></div>` +
+        (m.tipo === "texto" ? `<textarea data-id="txt${m.id}" rows="2"></textarea>
+          <div class="linha" style="margin:6px 0"><span class="tag">cor</span><input type="color" value="${m.cor || "#ffffff"}" data-id="cor${m.id}">
+          <label class="linha mini" style="color:var(--fraco)"><input type="checkbox" ${m.fundo ? "checked" : ""} data-id="fundo${m.id}"> fundo</label>
+          <input type="color" value="${m.cor_fundo || "#000000"}" data-id="corf${m.id}" ${m.fundo ? "" : "disabled"}></div>
+          <div class="campo" style="margin:0"><label><span>Tamanho</span><span>${m.tam} px</span></label><input type="range" min="30" max="220" step="2" value="${m.tam}" data-id="tam${m.id}"></div>`
+        : `<div class="dica" style="padding:0 0 4px">${esc(m.nome || m.arquivo)}</div><div class="campo" style="margin:0 0 6px"><label><span>Largura</span><span>${Math.round(m.larg)} px</span></label><input type="range" min="40" max="1080" step="2" value="${m.larg}" data-id="larg${m.id}"></div>`) +
+        `<div class="campo" style="margin:6px 0 0"><label><span>Opacidade</span><span>${Math.round((m.opacidade ?? 1) * 100)}%</span></label><input type="range" min="0.1" max="1" step="0.05" value="${m.opacidade ?? 1}" data-id="op${m.id}"></div>`;
+    }
+    d.innerHTML = corpo;
+    const nums = [...d.querySelectorAll('input[type=number]')];
+    if (m.tipo === "audio") {
+      nums[0].onchange = () => { m.t = clamp(+nums[0].value, 0, S.plano.dur); mudou(); };
+      nums[1].onchange = () => { m.dur = nums[1].value === "" ? null : Math.max(0.1, +nums[1].value); mudou(); };
+      nums[2].onchange = () => { m.ini_arq = Math.max(0, +nums[2].value); mudou(); };
+      const vol = d.querySelector(`[data-id="vol${m.id}"]`); vol.oninput = () => { m.volume_db = +vol.value; mudou(); };
+    } else {
+      nums[0].onchange = () => { m.ini = clamp(+nums[0].value, 0, m.fim - 0.05); mudou(); };
+      nums[1].onchange = () => { m.fim = clamp(+nums[1].value, m.ini + 0.05, S.plano.dur); mudou(); };
+      const op = d.querySelector(`[data-id="op${m.id}"]`); op.oninput = () => { m.opacidade = +op.value; mudou(); };
+      if (m.tipo === "texto") {
+        const tx_ = d.querySelector("textarea"); tx_.value = m.texto; tx_.oninput = () => { m.texto = tx_.value; mudou(); };
+        d.querySelector(`[data-id="cor${m.id}"]`).oninput = (e) => { m.cor = e.target.value; mudou(); };
+        d.querySelector(`[data-id="fundo${m.id}"]`).onchange = (e) => { m.fundo = e.target.checked; mudou(); };
+        d.querySelector(`[data-id="corf${m.id}"]`).oninput = (e) => { m.cor_fundo = e.target.value; mudou(); };
+        const tm = d.querySelector(`[data-id="tam${m.id}"]`); tm.oninput = () => { m.tam = +tm.value; mudou(); };
+      } else { const lg = d.querySelector(`[data-id="larg${m.id}"]`); lg.oninput = () => { m.larg = +lg.value; mudou(); }; }
+    }
+    d.querySelector(".ir").onclick = () => { v.currentTime = (m.tipo === "audio" ? m.t : m.ini) + 0.01; sel = { tipo: "midia", i }; midiaAssinatura = ""; desenhaListaMidia(); };
+    d.querySelector(".x").onclick = () => { ms.splice(i, 1); sel = { tipo: null, i: -1 }; mudou(); };
+    d.onclick = (e) => { if (["INPUT", "BUTTON", "TEXTAREA"].includes(e.target.tagName)) return; sel = { tipo: "midia", i }; midiaAssinatura = ""; desenhaListaMidia(); };
+    el.appendChild(d);
+  });
+  if (focoId) { const f = el.querySelector(`[data-id="${focoId}"]`); if (f) { f.focus(); if (f.setSelectionRange && (f.type === "text" || f.tagName === "TEXTAREA")) f.setSelectionRange(f.value.length, f.value.length); } }
+}
+let agoraAnt = -2;
+function marcarAgora() {
+  const gi = grupoEm(v.currentTime); if (gi === agoraAnt) return; agoraAnt = gi;
+  document.querySelectorAll("#listaLeg .item").forEach(e => e.classList.toggle("agora", +e.dataset.i === gi));
+  if (gi >= 0 && !v.paused && $("#aba-legenda").classList.contains("ativo")) { const e = document.querySelector(`#listaLeg .item[data-i="${gi}"]`); if (e) e.scrollIntoView({ block: "nearest" }); }
+  if (v.paused) atualizaZoomUI();
+}
+function atualizaZoomUI() { const z = moldura(v.currentTime)[4]; $("#zoom").value = z; $("#zoomVal").textContent = z.toFixed(2).replace(".", ",") + "×"; }
+function marcarEditado(on) { const b = document.querySelector(`#tabsCortes button[data-n="${S.n}"]`); if (b && on && !b.querySelector(".ponto")) b.insertAdjacentHTML("beforeend", '<span class="ponto" title="editado"></span>'); if (b && !on) { const p = b.querySelector(".ponto"); if (p) p.remove(); } }
+
+// ---------- câmera no vídeo original ----------
+let arrasto = null, hover = null;
+ov.addEventListener("pointerdown", (e) => {
+  if (!S) return; const a = areaVideo(), r = ov.getBoundingClientRect(), k = a.w / S.plano.W;
+  const mx = e.clientX - r.left, [x, , w] = moldura(v.currentTime);
+  const antes = antesDe(); v.pause(); paraManual();
+  const i = camChave(v.currentTime, true); sel = { tipo: "key", i };
+  const dentro = mx >= a.ox + x * k && mx <= a.ox + (x + w) * k;
+  arrasto = { tipo: "ov", i, dx: dentro ? mx - (a.ox + (x + w / 2) * k) : 0, antes };
+  ov.setPointerCapture(e.pointerId); moveCam(e);
+});
+function moveCam(e) {
+  const a = areaVideo(), r = ov.getBoundingClientRect(), k = a.w / S.plano.W;
+  S.ed.camera.chaves[arrasto.i].cx = +clamp(((e.clientX - r.left - arrasto.dx) - a.ox) / k / S.plano.W, 0, 1).toFixed(4);
+}
+ov.addEventListener("pointermove", (e) => { if (arrasto && arrasto.tipo === "ov") moveCam(e); });
+ov.addEventListener("pointerup", () => { if (arrasto && arrasto.tipo === "ov") { const a = arrasto; arrasto = null; confirma(a.antes); } });
+ov.addEventListener("wheel", (e) => {
+  if (!S) return; e.preventDefault(); v.pause(); const antes = antesDe(); paraManual();
+  const i = camChave(v.currentTime, true), kk = S.ed.camera.chaves[i]; sel = { tipo: "key", i };
+  kk.z = +clamp(kk.z * (e.deltaY < 0 ? 1.04 : 1 / 1.04), 0.5, 2).toFixed(3); confirma(antes);
+}, { passive: false });
+$("#zoom").addEventListener("input", () => {
+  const antes = antesDe(); v.pause(); paraManual();
+  const i = camChave(v.currentTime, true); S.ed.camera.chaves[i].z = +(+$("#zoom").value).toFixed(3); sel = { tipo: "key", i }; confirma(antes);
+});
+$("#modoAuto").onclick = () => { if (S.ed.camera.modo === "manual") { S.ed.camera = { modo: "auto", chaves: [] }; sel = { tipo: null, i: -1 }; mudou(); } };
+$("#modoManual").onclick = () => { if (S.ed.camera.modo !== "manual") { paraManual(); mudou(); } };
+$("#btAddKey").onclick = () => { paraManual(); sel = { tipo: "key", i: camChave(v.currentTime, true) }; mudou(); };
+$("#btCentro").onclick = () => { paraManual(); const i = camChave(v.currentTime, true); S.ed.camera.chaves[i].cx = (S.plano.gameplay && S.plano.gameplay.centro) || 0.5; S.ed.camera.chaves[i].z = 1; sel = { tipo: "key", i }; mudou(); };
+["#zrInt", "#zrDur", "#fgTam", "#fgDur"].forEach(s => $(s).addEventListener("input", atualizaPainel));
+function pontoFixo(ks, t, valores) {         // garante um ponto-chave em t com os valores que já estão ali
+  const i = ks.findIndex(k => Math.abs(k.t - t) < 0.06);
+  if (i >= 0) return ks[i];
+  const k = { t: +t.toFixed(2), ...valores(t) }; ks.push(k); ks.sort((a, b) => a.t - b.t); return k;
+}
+$("#btZoomRapido").onclick = () => {
+  const antes = antesDe(); paraManual();
+  const t = v.currentTime, ks = S.ed.camera.chaves, k = +$("#zrInt").value, d = +$("#zrDur").value, dur = S.plano.dur;
+  const atual = (tt) => { const [cx, z] = chaveEm(ks, tt, ["cx", "z"]); return { cx: +cx.toFixed(4), z: +z.toFixed(3) }; };
+  const t0 = Math.max(0, t - 0.25), t3 = Math.min(dur, t + d + 0.3), base0 = atual(t0), base3 = atual(t3), meio = atual(t);
+  for (let i = ks.length - 1; i >= 0; i--) if (ks[i].t > t0 + 0.01 && ks[i].t < t3 - 0.01) ks.splice(i, 1);
+  pontoFixo(ks, t0, () => base0); pontoFixo(ks, t3, () => base3);
+  ks.push({ t: +t.toFixed(2), cx: meio.cx, z: +(meio.z * k).toFixed(3) });
+  ks.push({ t: +Math.min(dur, t + d).toFixed(2), cx: meio.cx, z: +(meio.z * k).toFixed(3) });
+  ks.sort((a, b) => a.t - b.t); confirma(antes); estado(`zoom ${k.toFixed(2).replace(".", ",")}× de ${fmt(t)} a ${fmt(t + d)} s`);
+};
+
+// ---------- facecam, mídia e legenda na prévia ----------
+function pontoPrevia(e) { const r = pv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * 1080, (e.clientY - r.top) / r.height * 1920]; }
+function alvoPrevia(px, py) {
+  const t = v.currentTime, ms = S.ed.midias || [];
+  for (let i = ms.length - 1; i >= 0; i--) {
+    const m = ms[i]; if (m.tipo === "audio" || !(m.ini <= t && t < m.fim)) continue;
+    const b = caixaMidia(m);
+    if (m.tipo === "imagem" && Math.abs(px - (b.x + b.w)) < 24 && Math.abs(py - (b.y + b.h)) < 24) return { tipo: "midTam", i };
+    if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) return { tipo: "mid", i };
+  }
+  const cb = camBox(t);
+  if (cb && S.ed.facecam.visivel !== false) {
+    if (Math.abs(px - cb.x) < 26 && Math.abs(py - (cb.y + cb.h)) < 26) return { tipo: "camTam" };
+    if (px >= cb.x && px <= cb.x + cb.w && py >= cb.y && py <= cb.y + cb.h) return { tipo: "cam" };
+  }
+  const gi = grupoEm(t), y = S.ed.legenda.y, fs = gi >= 0 ? medidas(S.ed.legenda.grupos[gi]).fs : S.ed.legenda.tam;
+  if (Math.abs(py - y) < Math.max(50, fs * 0.7)) return { tipo: "leg" };
+  return null;
+}
+function alvoFacecam() {   // onde mexer: no ponto-chave do tempo atual (se tem animação) ou na posição fixa
+  const fc = S.ed.facecam;
+  if ((fc.chaves || []).length) { const i = faceChave(v.currentTime, true); sel = { tipo: "fkey", i }; return fc.chaves[i]; }
+  const b = camBase(); fc.x = Math.round(b.x); fc.y = Math.round(b.y); return { get x() { return fc.x; }, set x(v_) { fc.x = v_; }, get y() { return fc.y; }, set y(v_) { fc.y = v_; }, get larg() { return fc.larg || b.larg; }, set larg(v_) { fc.larg = v_; } };
+}
+pv.addEventListener("pointermove", (e) => {
+  if (!S) return; const [px, py] = pontoPrevia(e);
+  if (!arrasto) { const a = alvoPrevia(px, py); hover = a && a.tipo; pv.style.cursor = !a ? "default" : a.tipo.endsWith("Tam") ? "nwse-resize" : a.tipo === "leg" ? "ns-resize" : "move"; if (a && a.tipo === "camTam") pv.style.cursor = "nesw-resize"; return; }
+  const A = arrasto;
+  if (A.tipo === "camMove") { A.alvo.x = Math.round(clamp(px - A.dx, -200, 1080 - 40)); A.alvo.y = Math.round(clamp(py - A.dy, -200, 1920 - 40)); }
+  else if (A.tipo === "camTam") { const larg = Math.round(clamp(A.dir - px, 80, 1080) / 2) * 2; A.alvo.larg = larg; A.alvo.x = Math.round(A.dir - larg); }
+  else if (A.tipo === "leg") { S.ed.legenda.y = Math.round(clamp(py, 200, 1820)); S.ed.legenda.grupos.forEach(g => delete g.y); }
+  else if (A.tipo === "mid") { const m = S.ed.midias[A.i]; m.x = Math.round(px - A.dx); m.y = Math.round(py - A.dy); }
+  else if (A.tipo === "midTam") { const m = S.ed.midias[A.i]; m.larg = Math.round(clamp((px - m.x) * 2, 40, 2160)); }
+  if (A.tipo.startsWith("cam")) { $("#camLarg").value = camBox(v.currentTime).w; $("#camLargVal").textContent = camBox(v.currentTime).w + " px"; }
+});
+pv.addEventListener("pointerdown", (e) => {
+  if (!S) return; const [px, py] = pontoPrevia(e), a = alvoPrevia(px, py); if (!a) return;
+  v.pause(); pv.setPointerCapture(e.pointerId); const antes = antesDe();
+  if (a.tipo === "cam" || a.tipo === "camTam") {
+    const cb = camBox(v.currentTime), alvo = alvoFacecam();
+    alvo.x = Math.round(cb.x); alvo.y = Math.round(cb.y); alvo.larg = cb.w;
+    arrasto = a.tipo === "cam" ? { tipo: "camMove", alvo, dx: px - cb.x, dy: py - cb.y, antes } : { tipo: "camTam", alvo, dir: cb.x + cb.w, antes };
+  } else if (a.tipo === "mid" || a.tipo === "midTam") { const m = S.ed.midias[a.i]; sel = { tipo: "midia", i: a.i }; arrasto = { tipo: a.tipo, i: a.i, dx: px - m.x, dy: py - m.y, antes }; abrirAba("midia"); }
+  else arrasto = { tipo: "leg", antes };
+});
+pv.addEventListener("pointerup", () => { if (arrasto && arrasto.tipo !== "ov") { const a = arrasto; arrasto = null; confirma(a.antes); } });
+$("#camVisivel").onchange = () => { S.ed.facecam.visivel = $("#camVisivel").checked; mudou(); };
+$("#camLarg").oninput = () => {
+  const antes = antesDe(), cb = camBox(v.currentTime), dir = cb.x + cb.w, base = cb.y + cb.h, larg = +$("#camLarg").value, alt = Math.round(larg * aspectoCam() / 2) * 2;
+  const alvo = alvoFacecam(); alvo.larg = larg; alvo.x = Math.round(clamp(dir - larg, 0, 1080 - larg)); alvo.y = Math.round(clamp(base - alt, 0, 1920 - alt)); confirma(antes);
+};
+$("#camRaio").oninput = () => { S.ed.facecam.raio = +$("#camRaio").value; mudou(); };
+document.querySelectorAll("[data-pos]").forEach(b => b.onclick = () => {
+  const p = b.dataset.pos, antes = antesDe();
+  if (p === "padrao") { const fc = S.ed.facecam; fc.x = null; fc.y = null; fc.larg = S.const.CAM_LARG; fc.raio = S.const.CAM_RAIO; fc.chaves = []; return confirma(antes); }
+  const cb = camBox(v.currentTime), m = 40, alvo = alvoFacecam();
+  alvo.x = p.endsWith("e") ? m : 1080 - m - cb.w; alvo.y = p.startsWith("s") ? 140 : 1920 - 60 - cb.h; confirma(antes);
+});
+$("#btFaceKey").onclick = () => { const antes = antesDe(); sel = { tipo: "fkey", i: faceChave(v.currentTime, true) }; confirma(antes); };
+$("#btFaceSemAnim").onclick = () => { if (!(S.ed.facecam.chaves || []).length) return; const antes = antesDe(); const b = camBox(v.currentTime); S.ed.facecam.chaves = []; S.ed.facecam.x = Math.round(b.x); S.ed.facecam.y = Math.round(b.y); S.ed.facecam.larg = b.w; confirma(antes); };
+$("#btFaceGrande").onclick = () => {
+  const antes = antesDe(), fc = S.ed.facecam; fc.chaves = fc.chaves || [];
+  const t = v.currentTime, d = +$("#fgDur").value, dur = S.plano.dur, larg = Math.round(+$("#fgTam").value / 2) * 2, alt = Math.round(larg * aspectoCam() / 2) * 2;
+  const atual = (tt) => { const b = camBox(tt); return { x: Math.round(b.x), y: Math.round(b.y), larg: b.w }; };
+  const t0 = Math.max(0, t - 0.3), t3 = Math.min(dur, t + d + 0.3), b0 = atual(t0), b3 = atual(t3), bm = atual(t);
+  const ks = fc.chaves;
+  for (let i = ks.length - 1; i >= 0; i--) if (ks[i].t > t0 + 0.01 && ks[i].t < t3 - 0.01) ks.splice(i, 1);
+  pontoFixo(ks, t0, () => b0); pontoFixo(ks, t3, () => b3);
+  let gx, gy;
+  if ($("#fgCentro").checked) { gx = Math.round((1080 - larg) / 2); gy = Math.round(clamp(1920 * 0.55 - alt / 2, 0, 1920 - alt)); }
+  else { gx = Math.round(clamp(bm.x + bm.larg - larg, 0, 1080 - larg)); gy = Math.round(clamp(bm.y + Math.round(bm.larg * aspectoCam()) - alt, 0, 1920 - alt)); }
+  ks.push({ t: +t.toFixed(2), x: gx, y: gy, larg }); ks.push({ t: +Math.min(dur, t + d).toFixed(2), x: gx, y: gy, larg });
+  ks.sort((a, b) => a.t - b.t); confirma(antes); estado(`facecam grande de ${fmt(t)} a ${fmt(t + d)} s`);
+};
+
+// ---------- mídia: adicionar ----------
+async function enviarMidia(arq) {
+  estado(`enviando ${arq.name}…`);
+  const r = await fetch(`/api/midia/${encodeURIComponent(S.slug)}?nome=${encodeURIComponent(arq.name)}`, { method: "POST", body: arq });
+  const j = await r.json(); if (!r.ok) throw new Error(j.erro || "falhou"); return j;
+}
+$("#btAddImg").onclick = () => $("#arqImg").click();
+$("#btAddAudio").onclick = () => $("#arqAudio").click();
+$("#arqImg").onchange = async () => {
+  const f = $("#arqImg").files[0]; $("#arqImg").value = ""; if (!f) return;
+  try { const j = await enviarMidia(f), antes = antesDe(), t = v.currentTime; S.ed.midias = S.ed.midias || [];
+    const larg = Math.min(500, j.w || 500);
+    S.ed.midias.push({ id: uid(), tipo: "imagem", arquivo: j.arquivo, nome: f.name, w: j.w, h: j.h, ini: +t.toFixed(2), fim: +Math.min(S.plano.dur, t + 3).toFixed(2), x: 540, y: 620, larg, opacidade: 1, anim: "fade" });
+    sel = { tipo: "midia", i: S.ed.midias.length - 1 }; abrirAba("midia"); confirma(antes);
+  } catch (e) { estado("erro: " + e.message, "erro"); }
+};
+$("#arqAudio").onchange = async () => {
+  const f = $("#arqAudio").files[0]; $("#arqAudio").value = ""; if (!f) return;
+  try { const j = await enviarMidia(f), antes = antesDe(), t = v.currentTime; S.ed.midias = S.ed.midias || [];
+    S.ed.midias.push({ id: uid(), tipo: "audio", arquivo: j.arquivo, nome: f.name, arqDur: j.dur, t: +t.toFixed(2), dur: null, ini_arq: 0, volume_db: -8, fade: true });
+    sel = { tipo: "midia", i: S.ed.midias.length - 1 }; abrirAba("midia"); confirma(antes);
+  } catch (e) { estado("erro: " + e.message, "erro"); }
+};
+$("#btAddTexto").onclick = () => {
+  const antes = antesDe(), t = v.currentTime; S.ed.midias = S.ed.midias || [];
+  S.ed.midias.push({ id: uid(), tipo: "texto", texto: "SEU TEXTO", ini: +t.toFixed(2), fim: +Math.min(S.plano.dur, t + 3).toFixed(2), x: 540, y: 300, tam: 90, cor: "#FFFFFF", fundo: false, cor_fundo: "#000000", opacidade: 1, anim: "fade" });
+  sel = { tipo: "midia", i: S.ed.midias.length - 1 }; abrirAba("midia"); confirma(antes);
+};
+
+// ---------- cortar trechos ----------
+$("#btMarcaIni").onclick = () => { marca.ini = +v.currentTime.toFixed(2); if (marca.fim !== null && marca.fim <= marca.ini) marca.fim = null; atualizaPainel(); };
+$("#btMarcaFim").onclick = () => { marca.fim = +v.currentTime.toFixed(2); if (marca.ini !== null && marca.ini >= marca.fim) marca.ini = null; atualizaPainel(); };
+function removerTrecho(a, b) { if (b - a < 0.05) return; const antes = antesDe(); remover().push([+a.toFixed(2), +b.toFixed(2)]); juntarRemovidos(); marca = { ini: null, fim: null }; confirma(antes);
+  estado(`✂ ${fmt(a)}–${fmt(b)} s marcado pra sair (${fmt(b - a)} s). Clique em Renderizar corte pra aplicar no vídeo.`, "ok"); }
+$("#btRemover").onclick = () => {
+  if (marca.ini === null || marca.fim === null) return estado(remover().length ? "Pra tirar OUTRO trecho, marque o início (I) e o fim (O). Os já tirados estão na lista; falta só Renderizar corte." : "Marque o início (I) e o fim (O) do trecho primeiro.", remover().length ? "" : "erro");
+  removerTrecho(marca.ini, marca.fim);
+};
+$("#btTirarAntes").onclick = () => removerTrecho(0, v.currentTime);
+$("#btTirarDepois").onclick = () => removerTrecho(v.currentTime, S.plano.dur);
+
+// ---------- legenda: painel ----------
+$("#corLeg").oninput = () => { S.ed.legenda.cor = $("#corLeg").value.toUpperCase(); mudou(); };
+$("#tamLeg").oninput = () => { S.ed.legenda.tam = +$("#tamLeg").value; mudou(); };
+$("#yLeg").oninput = () => { S.ed.legenda.y = +$("#yLeg").value; S.ed.legenda.grupos.forEach(g => delete g.y); mudou(); };
+$("#efeitos").onchange = () => { S.ed.efeitos = $("#efeitos").checked; mudou(); };
+$("#btNovoBloco").onclick = () => {
+  const t = v.currentTime, gs = S.ed.legenda.grupos; const prox = gs.filter(g => g.ini > t).map(g => g.ini);
+  const fim = Math.min(t + 1.2, prox.length ? Math.min(...prox) : S.plano.dur);
+  gs.push({ ini: +t.toFixed(2), fim: +Math.max(fim, t + 0.3).toFixed(2), texto: "NOVO TEXTO", enfase: [] }); gs.sort((a, b) => a.ini - b.ini);
+  sel = { tipo: "leg", i: gs.findIndex(g => Math.abs(g.ini - t) < 0.01) }; abrirAba("legenda"); mudou();
+};
+$("#btDividir").onclick = () => {
+  const t = v.currentTime, gs = S.ed.legenda.grupos, i = grupoEm(t); if (i < 0) return;
+  const g = gs[i], pal = String(g.texto).split(/\s+/).filter(Boolean); if (pal.length < 2) return;
+  const meio = Math.ceil(pal.length / 2), b = { ini: +t.toFixed(2), fim: g.fim, texto: pal.slice(meio).join(" "), enfase: (g.enfase || []).filter(p => pal.slice(meio).map(limpa).includes(limpa(p))) };
+  g.fim = +t.toFixed(2); g.texto = pal.slice(0, meio).join(" "); g.enfase = (g.enfase || []).filter(p => pal.slice(0, meio).map(limpa).includes(limpa(p)));
+  gs.splice(i + 1, 0, b); mudou();
+};
+
+// ---------- linha do tempo ----------
+function alvoTL(px, py) {
+  const [W] = tamanhoCanvas(tl);
+  if (py >= TL.cam[0] - 4 && py <= TL.cam[1] && S.ed.camera.modo === "manual") {
+    const i = S.ed.camera.chaves.findIndex(k => Math.abs(tx(k.t, W) - px) < 7); if (i >= 0) return { tipo: "key", i };
+  }
+  if (py >= TL.face[0] - 3 && py <= TL.face[1] + 3) {
+    const i = (S.ed.facecam.chaves || []).findIndex(k => Math.abs(tx(k.t, W) - px) < 7); if (i >= 0) return { tipo: "fkey", i };
+  }
+  if (py >= TL.leg[0] && py <= TL.leg[1]) {
+    for (let i = 0; i < S.ed.legenda.grupos.length; i++) { const g = S.ed.legenda.grupos[i], x0 = tx(g.ini, W), x1 = tx(g.fim, W);
+      if (Math.abs(px - x0) < 5) return { tipo: "legIni", i }; if (Math.abs(px - x1) < 5) return { tipo: "legFim", i };
+      if (px > x0 && px < x1) return { tipo: "legMove", i, off: txInv(px, W) - g.ini }; }
+  }
+  if (py >= TL.mid[0] && py <= TL.mid[1]) {
+    const fx = faixasMidia(), lh = (TL.mid[1] - TL.mid[0]) / 3, l = Math.floor((py - TL.mid[0]) / lh);
+    for (const [i, { a, b, l: li }] of fx) { if (li !== l) continue; const x0 = tx(a, W), x1 = tx(b, W);
+      const m = S.ed.midias[i];
+      if (m.tipo !== "audio" && Math.abs(px - x0) < 5) return { tipo: "midIni", i }; if (Math.abs(px - x1) < 5) return { tipo: "midFim", i };
+      if (px > x0 && px < x1) return { tipo: "midMove", i, off: txInv(px, W) - a }; }
+  }
+  return { tipo: "seek" };
+}
+let arrastoTL = null;
+tl.addEventListener("pointerdown", (e) => {
+  if (!S) return; const r = tl.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, [W] = tamanhoCanvas(tl);
+  const a = alvoTL(px, py); tl.setPointerCapture(e.pointerId); a.antes = antesDe(); arrastoTL = a;
+  if (a.tipo === "key") { sel = { tipo: "key", i: a.i }; v.currentTime = S.ed.camera.chaves[a.i].t; abrirAba("camera"); }
+  else if (a.tipo === "fkey") { sel = { tipo: "fkey", i: a.i }; v.currentTime = S.ed.facecam.chaves[a.i].t; abrirAba("facecam"); }
+  else if (a.tipo.startsWith("leg")) { sel = { tipo: "leg", i: a.i }; abrirAba("legenda"); listaAssinatura = ""; if (a.tipo === "legMove") v.currentTime = S.ed.legenda.grupos[a.i].ini + 0.01; }
+  else if (a.tipo.startsWith("mid")) { sel = { tipo: "midia", i: a.i }; abrirAba("midia"); midiaAssinatura = ""; const m = S.ed.midias[a.i]; if (a.tipo === "midMove") v.currentTime = (m.tipo === "audio" ? m.t : m.ini) + 0.01; }
+  else v.currentTime = txInv(px, W);
+  atualizaPainel();
+});
+tl.addEventListener("pointermove", (e) => {
+  if (!S) return; const r = tl.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, [W] = tamanhoCanvas(tl);
+  if (!arrastoTL) { const a = alvoTL(px, py); tl.style.cursor = /Ini|Fim/.test(a.tipo) ? "ew-resize" : a.tipo === "seek" ? "pointer" : "grab"; return; }
+  const t = txInv(px, W), a = arrastoTL, gs = S.ed.legenda.grupos, ms = S.ed.midias || [];
+  if (a.tipo === "seek") v.currentTime = t;
+  else if (a.tipo === "key") { const k = S.ed.camera.chaves[a.i]; k.t = +t.toFixed(2); v.currentTime = k.t; a.mexeu = true; }
+  else if (a.tipo === "fkey") { const k = S.ed.facecam.chaves[a.i]; k.t = +t.toFixed(2); v.currentTime = k.t; a.mexeu = true; }
+  else if (a.tipo === "legIni") { gs[a.i].ini = +clamp(t, 0, gs[a.i].fim - 0.05).toFixed(2); v.currentTime = gs[a.i].ini + 0.01; a.mexeu = true; }
+  else if (a.tipo === "legFim") { gs[a.i].fim = +clamp(t, gs[a.i].ini + 0.05, S.plano.dur).toFixed(2); v.currentTime = Math.max(gs[a.i].ini, gs[a.i].fim - 0.05); a.mexeu = true; }
+  else if (a.tipo === "legMove") { const g = gs[a.i], d = g.fim - g.ini, ini = clamp(t - a.off, 0, S.plano.dur - d); g.ini = +ini.toFixed(2); g.fim = +(ini + d).toFixed(2); a.mexeu = true; }
+  else if (a.tipo === "midMove") { const m = ms[a.i]; if (m.tipo === "audio") { m.t = +clamp(t - a.off, 0, S.plano.dur).toFixed(2); } else { const d = m.fim - m.ini, ini = clamp(t - a.off, 0, S.plano.dur - d); m.ini = +ini.toFixed(2); m.fim = +(ini + d).toFixed(2); } a.mexeu = true; }
+  else if (a.tipo === "midIni") { const m = ms[a.i]; m.ini = +clamp(t, 0, m.fim - 0.05).toFixed(2); v.currentTime = m.ini + 0.01; a.mexeu = true; }
+  else if (a.tipo === "midFim") { const m = ms[a.i]; if (m.tipo === "audio") m.dur = +Math.max(0.2, t - m.t).toFixed(2); else m.fim = +clamp(t, m.ini + 0.05, S.plano.dur).toFixed(2); a.mexeu = true; }
+});
+tl.addEventListener("pointerup", () => {
+  const a = arrastoTL; arrastoTL = null;
+  if (a && a.mexeu) {
+    if (a.tipo === "key") { const k = S.ed.camera.chaves[a.i]; S.ed.camera.chaves.sort((x, y) => x.t - y.t); sel = { tipo: "key", i: S.ed.camera.chaves.indexOf(k) }; }
+    if (a.tipo === "fkey") { const k = S.ed.facecam.chaves[a.i]; S.ed.facecam.chaves.sort((x, y) => x.t - y.t); sel = { tipo: "fkey", i: S.ed.facecam.chaves.indexOf(k) }; }
+    if (a.tipo.startsWith("leg")) { const g = S.ed.legenda.grupos[a.i]; S.ed.legenda.grupos.sort((x, y) => x.ini - y.ini); sel = { tipo: "leg", i: S.ed.legenda.grupos.indexOf(g) }; }
+    confirma(a.antes);
+  }
+});
+
+// ---------- teclado ----------
+document.addEventListener("keydown", (e) => {
+  if (!S) return;
+  const ae = document.activeElement;
+  const emCampo = ["INPUT", "SELECT", "TEXTAREA"].includes(ae.tagName) && !["range", "checkbox", "color"].includes(ae.type);
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !emCampo) { e.preventDefault(); e.shiftKey ? refazer() : desfazer(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y" && !emCampo) { e.preventDefault(); refazer(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); clearTimeout(salvarTimer); salvar(); return; }
+  if (emCampo) return;
+  const k = e.key.toLowerCase();
+  if (e.key === " ") { e.preventDefault(); tocar(); }
+  else if (e.key === "ArrowLeft") { v.currentTime = Math.max(0, v.currentTime - (e.shiftKey ? 1 : 0.1)); }
+  else if (e.key === "ArrowRight") { v.currentTime = Math.min(S.plano.dur, v.currentTime + (e.shiftKey ? 1 : 0.1)); }
+  else if (k === "k") $("#btAddKey").click();
+  else if (k === "i") { $("#btMarcaIni").click(); abrirAba("cortar"); }
+  else if (k === "o") { $("#btMarcaFim").click(); abrirAba("cortar"); }
+  else if (k === "x") $("#btRemover").click();
+  else if (e.key === "Delete" || e.key === "Backspace") {
+    const L = { key: S.ed.camera.chaves, fkey: S.ed.facecam.chaves || [], leg: S.ed.legenda.grupos, midia: S.ed.midias || [] }[sel.tipo];
+    if (L && L[sel.i]) { L.splice(sel.i, 1); sel = { tipo: null, i: -1 }; mudou(); }
+  }
+});
+function tocar() { if (v.paused) { if (v.currentTime >= S.plano.dur - 0.05) v.currentTime = 0; v.play(); } else v.pause(); }
+$("#btPlay").onclick = tocar;
+v.addEventListener("play", () => $("#btPlay").textContent = "❚❚ Pausar");
+v.addEventListener("pause", () => { $("#btPlay").textContent = "▶ Tocar"; atualizaPainel(); });
+v.addEventListener("timeupdate", () => { if (S && v.currentTime >= S.plano.dur) v.pause(); });
+$("#btDesfazer").onclick = desfazer; $("#btRefazer").onclick = refazer;
+
+// ---------- abas ----------
+function abrirAba(nome) { document.querySelectorAll("#abas button").forEach(b => b.classList.toggle("ativo", b.dataset.aba === nome));
+  document.querySelectorAll(".aba").forEach(a => a.classList.toggle("ativo", a.id === "aba-" + nome)); if (nome === "final") mostrarFinal(); }
+document.querySelectorAll("#abas button").forEach(b => b.onclick = () => abrirAba(b.dataset.aba));
+
+// ---------- carregar ----------
+async function carregarProjeto(slug) {
+  projeto = await api(`/api/projeto/${encodeURIComponent(slug)}`);
+  history.replaceState(null, "", `/editar?v=${encodeURIComponent(slug)}`);
+  const tabs = $("#tabsCortes"); tabs.innerHTML = "";
+  projeto.cortes.forEach(c => { const b = document.createElement("button"); b.dataset.n = c.n; b.title = `${c.titulo} (${fmt(c.dur)} s, nota ${c.nota})`;
+    b.innerHTML = `Corte ${c.n}` + (c.editado ? '<span class="ponto" title="editado"></span>' : ""); b.onclick = () => carregarCorte(c.n); tabs.appendChild(b); });
+  if (projeto.cortes.length) await carregarCorte(projeto.cortes[0].n); else estado("nenhum corte pronto neste vídeo");
+}
+async function carregarCorte(n) {
+  if (salvarTimer && S) { clearTimeout(salvarTimer); await salvar(); }
+  Object.values(audios).forEach(a => a.pause()); for (const k in audios) delete audios[k];
+  estado("carregando o corte… (a 1ª vez prepara a prévia, uns segundos)");
+  const d = await api(`/api/corte/${encodeURIComponent(projeto.slug)}/${n}`);
+  S = { slug: projeto.slug, n, plano: d.plano, ed: d.edicao, padrao: d.padrao, const: d.constantes, final: d.final };
+  S.ed.camera = S.ed.camera || { modo: "auto", chaves: [] }; S.ed.facecam = S.ed.facecam || JSON.parse(JSON.stringify(d.padrao.facecam));
+  S.ed.legenda = S.ed.legenda || JSON.parse(JSON.stringify(d.padrao.legenda)); S.ed.midias = S.ed.midias || []; S.ed.remover = S.ed.remover || [];
+  S.ed.facecam.chaves = S.ed.facecam.chaves || [];
+  hist = []; futuro = []; ultimo = snapshot(); sel = { tipo: null, i: -1 }; marca = { ini: null, fim: null }; listaAssinatura = ""; midiaAssinatura = "";
+  document.querySelectorAll("#tabsCortes button").forEach(b => b.classList.toggle("ativo", +b.dataset.n === n));
+  try { const f = new FontFace("VCFonte", `url(/midia/${encodeURIComponent(S.slug)}/${n}/fonte.ttf)`); await f.load(); document.fonts.add(f); } catch (e) { /* usa Arial Black */ }
+  v.src = `/midia/${encodeURIComponent(S.slug)}/${n}/previa.mp4`;
+  await new Promise(r => v.addEventListener("loadeddata", r, { once: true }));
+  const c = projeto.cortes.find(c => c.n === n);
+  estado(`${c.titulo} · ${fmt(c.dur)} s` + (d.tem_edicao ? " · editado" : ""), d.tem_edicao ? "ok" : "");
+  atualizaPainel();
+  if (d.estado && d.estado.estado === "renderizando") acompanhar();
+  if ($("#aba-final").classList.contains("ativo")) mostrarFinal();
+}
+function mostrarFinal() {
+  if (!S) return; const fv = $("#finalVideo");
+  const novo = `/midia/${encodeURIComponent(S.slug)}/${S.n}/final.mp4?v=${Date.now()}`;
+  const bx = $("#btBaixar");
+  if (S.final) { fv.src = novo; $("#finalInfo").textContent = `Arquivo: saida/${S.slug}/corte-${S.n}.mp4 (a versão automática fica em saida/${S.slug}/automatico/).`;
+    bx.href = novo; bx.download = `${S.slug}-corte-${S.n}.mp4`; bx.style.display = "inline-block"; }
+  else { fv.removeAttribute("src"); bx.style.display = "none"; $("#finalInfo").textContent = "Este corte ainda não foi renderizado."; }
+}
+$("#btPasta").onclick = () => api(`/api/abrir-pasta/${encodeURIComponent(S.slug)}`, { method: "POST" }).catch(e => estado("erro: " + e.message, "erro"));
+$("#btRender").onclick = async () => {
+  clearTimeout(salvarTimer);
+  try { await api(`/api/renderizar/${S.slug}/${S.n}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: snapshot() }); marcarEditado(true); acompanhar(); }
+  catch (e) { estado("erro: " + e.message, "erro"); }
+};
+let acompanhando = null;
+function acompanhar() {
+  const slug = S.slug, n = S.n; $("#btRender").disabled = true; clearInterval(acompanhando);
+  acompanhando = setInterval(async () => {
+    const st = await api(`/api/estado/${slug}/${n}`).catch(() => null); if (!st) return;
+    if (S.slug !== slug || S.n !== n) { clearInterval(acompanhando); $("#btRender").disabled = false; return; }
+    if (st.estado === "renderizando") estado(`renderizando o corte ${n}… ${Math.round(Date.now() / 1000 - st.ini)} s (uns 2 a 3 min)`);
+    else { clearInterval(acompanhando); $("#btRender").disabled = false;
+      if (st.estado === "pronto") { estado(`corte ${n} renderizado ✓ ${st.msg}`, "ok"); S.final = true; abrirAba("final"); }
+      else estado(st.msg || "erro", "erro"); }
+  }, 1000);
+}
+$("#btDescartar").onclick = async () => {
+  if (!confirm("Apagar as edições deste corte (câmera, legenda, facecam, mídia e trechos removidos) e voltar ao automático? O vídeo final só muda quando você renderizar de novo.")) return;
+  clearTimeout(salvarTimer); await api(`/api/descartar/${S.slug}/${S.n}`, { method: "POST" });
+  hist.push(snapshot()); S.ed = JSON.parse(JSON.stringify(S.padrao)); S.ed.midias = []; S.ed.remover = []; S.ed.facecam.chaves = [];
+  ultimo = snapshot(); marcarEditado(false); atualizaPainel(); estado("voltou ao automático (renderize pra aplicar no vídeo)");
+};
+$("#projeto").onchange = () => carregarProjeto($("#projeto").value);
+(async () => {
+  try {
+    const p = await api("/api/projetos"); const s = $("#projeto");
+    p.lista.forEach(x => { const o = document.createElement("option"); o.value = x.slug; o.textContent = x.titulo; s.appendChild(o); });
+    const pedido = new URLSearchParams(location.search).get("v");
+    const ini = p.projetos.includes(pedido) ? pedido : p.inicial;
+    if (!ini) { estado("nenhum vídeo ainda: mande um na página inicial"); return; }
+    s.value = ini; await carregarProjeto(ini);
+  } catch (e) { estado("erro: " + e.message, "erro"); }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

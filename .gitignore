@@ -1,0 +1,31 @@
+# ---- Segredos: NUNCA vão pro Git ----
+.env
+.env.*
+!.env.example
+*.key
+
+# ---- Seus vídeos, transcrições, cortes e uploads (pessoais e enormes) ----
+trabalho/
+saida/
+modelos/
+
+# ---- Ambiente Python e caches ----
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# ---- Arquivos temporários ----
+*.parcial
+*.parcial.mp4
+*.tmp
+*.log
+
+# ---- Sistema e editores ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+.claude/settings.local.json
