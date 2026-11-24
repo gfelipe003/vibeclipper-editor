@@ -292,8 +292,8 @@ def previa(slug, n):
 
 def renderizar_bg(slug, n):
     import importlib
-    import enquadrar, efeitos, renderizar, edicao                           # noqa: E401
-    for m in (enquadrar, efeitos, renderizar, edicao):                      # pega correções nos scripts sem reiniciar
+    import enquadrar, efeitos, visual, renderizar, edicao                   # noqa: E401
+    for m in (enquadrar, efeitos, visual, renderizar, edicao):                      # pega correções nos scripts sem reiniciar
         importlib.reload(m)
     T = pasta_T(slug)
     saida = os.path.join(SAIDA, slug, f"corte-{n}.mp4")
@@ -363,6 +363,14 @@ class Handler(BaseHTTPRequestHandler):
                 b = open(INICIO if not partes else PAGINA if partes == ["editar"] else CONFIG, "rb").read()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(b)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(b)
+            elif partes == ["estilo.css"]:                                  # visual comum das 3 páginas
+                b = open(os.path.join(os.path.dirname(PAGINA), "estilo.css"), "rb").read()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/css; charset=utf-8")
                 self.send_header("Content-Length", str(len(b)))
                 self.send_header("Cache-Control", "no-store")
                 self.end_headers()

@@ -4,44 +4,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VibeClipper · Configurações</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/estilo.css">
 <style>
-:root { --bg: #0f1115; --painel: #171a21; --painel2: #1e222b; --borda: #2a2f3a; --texto: #e6e8ee; --fraco: #8b93a4;
-  --acento: #ff4d3d; --acento2: #ffb020; --ok: #2fbf71; --raio: 12px; }
-* { box-sizing: border-box; }
-html, body { margin: 0; background: var(--bg); color: var(--texto); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-button, input, select { font: inherit; color: inherit; }
-a { color: inherit; }
-.topo { display: flex; align-items: center; gap: 14px; padding: 14px 24px; border-bottom: 1px solid var(--borda); background: var(--painel); }
-.topo h1 { font-size: 18px; margin: 0; } .topo h1 b { color: var(--acento); }
-.topo .espaco { flex: 1; }
-.link { color: var(--fraco); text-decoration: none; } .link:hover { color: var(--texto); }
-.wrap { max-width: 760px; margin: 0 auto; padding: 28px 16px 60px; }
-h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--fraco); margin: 0 0 6px; font-weight: 600; }
-.card { background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio); padding: 22px; margin-bottom: 20px; }
-.card p { color: var(--fraco); margin: 6px 0 14px; font-size: 14px; }
-label.r { display: block; font-size: 13px; color: var(--fraco); margin: 14px 0 6px; }
+.wrap { max-width: 780px; }
+.pag-t { margin: 0 0 22px; } .pag-t h1 { margin: 0 0 4px; font-size: 24px; letter-spacing: -.02em; } .pag-t p { margin: 0; color: var(--fraco); }
+.card h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
+.card p { color: var(--fraco); margin: 4px 0 16px; font-size: 13.5px; }
+.card p a { color: var(--texto); }
+label.r { display: block; font-size: 12px; font-weight: 500; color: var(--fraco); margin: 18px 0 6px; }
 .linha { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-input[type=password], input[type=text], select { flex: 1; min-width: 220px; background: var(--bg); border: 1px solid var(--borda); border-radius: 9px; padding: 10px 12px; }
-input:focus, select:focus { outline: 2px solid var(--acento); border-color: transparent; }
-.btn { background: var(--painel2); border: 1px solid var(--borda); border-radius: 9px; padding: 9px 14px; cursor: pointer; text-decoration: none; display: inline-block; }
-.btn:hover { border-color: #3c4352; }
-.btn.primario { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; }
-.btn:disabled { opacity: .5; cursor: default; }
-.estado { font-size: 13.5px; margin-top: 10px; min-height: 20px; }
-.estado.ok { color: var(--ok); } .estado.erro { color: var(--acento); }
-.tag { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--borda); color: var(--fraco); }
-.tag.ok { border-color: var(--ok); color: var(--ok); }
+input[type=password], input[type=text], select { flex: 1; min-width: 220px; padding: 10px 12px; border-radius: 10px; }
+select { padding-right: 30px; }
+.estado { font-size: 13px; margin-top: 10px; min-height: 20px; color: var(--fraco); }
+.estado.ok { color: var(--verde); } .estado.erro { color: #ff8a80; }
+.tag { display: inline-block; font-size: 11px; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--linha2); color: var(--fraco); background: transparent; }
+.tag.ok { border-color: rgba(47,191,113,.4); color: var(--verde); background: rgba(47,191,113,.08); }
 .opcoes { display: grid; gap: 8px; }
-.opcao { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 10px; cursor: pointer; }
-.opcao:has(input:checked) { border-color: var(--acento); background: rgba(255,77,61,.06); }
-.opcao input { margin-top: 4px; accent-color: var(--acento); }
-.opcao b { display: block; } .opcao span { color: var(--fraco); font-size: 13.5px; }
-.aviso { background: #12221a; border: 1px solid #1f4a33; color: #9fe0bb; border-radius: 10px; padding: 12px 14px; font-size: 13.5px; }
+.opcao { display: flex; gap: 12px; align-items: flex-start; padding: 13px 15px; border: 1px solid var(--linha); border-radius: 12px; cursor: pointer; background: var(--s2); transition: .12s; }
+.opcao:hover { border-color: var(--linha2); }
+.opcao:has(input:checked) { border-color: var(--acento); background: rgba(255,77,61,.06); box-shadow: 0 0 0 3px rgba(255,77,61,.1); }
+.opcao input { margin-top: 3px; accent-color: var(--acento); }
+.opcao b { display: block; font-weight: 600; } .opcao span { color: var(--fraco); font-size: 13px; }
+.aviso { background: rgba(47,191,113,.06); border: 1px solid rgba(47,191,113,.25); color: #a8e6c4; border-radius: 12px; padding: 12px 14px; font-size: 13px; margin-bottom: 22px; }
+code { background: var(--s3); border-radius: 5px; padding: 1px 6px; font-size: 12.5px; }
+.rodape { position: sticky; bottom: 16px; display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: rgba(17,19,24,.9); backdrop-filter: blur(12px); border: 1px solid var(--linha); border-radius: 14px; box-shadow: var(--sombra); }
 </style>
 </head>
 <body>
-<div class="topo"><a class="link" href="/">← Início</a><h1><b>Vibe</b>Clipper · Configurações</h1><div class="espaco"></div><a class="btn" href="/editar">Abrir o editor</a></div>
+<div class="barra-pag"><a class="marca" href="/"><span class="logo"></span><span>Vibe<b>Clipper</b></span></a><div class="espaco"></div><a class="btn ghost" href="/">Início</a><a class="btn" href="/editar">Abrir o editor</a></div>
 <div class="wrap">
+  <div class="pag-t"><h1>Configurações</h1><p>Escolha quem escolhe os momentos e guarde suas chaves com segurança.</p></div>
   <div class="aviso" style="margin-bottom:20px">🔒 As chaves ficam só neste computador, no arquivo <code id="arq">.env</code> da pasta do VibeClipper. Esse arquivo não vai pro Git e a página nunca mostra a chave inteira.</div>
 
   <section class="card">
@@ -77,7 +71,7 @@ input:focus, select:focus { outline: 2px solid var(--acento); border-color: tran
     </div>
   </section>
 
-  <div class="linha"><button class="btn primario" id="salvar">Salvar configurações</button><span class="estado" id="estSalvar" style="margin:0"></span></div>
+  <div class="rodape"><button class="btn primario" id="salvar">Salvar configurações</button><span class="estado" id="estSalvar" style="margin:0"></span></div>
 </div>
 <script>
 "use strict";

@@ -72,6 +72,11 @@ mostra cada etapa; no fim, **Abrir no editor**. Só a escolha dos momentos usa o
   (ou arraste a legenda na prévia).
 - **Facecam:** arraste na prévia, redimensione pelo canto de baixo à esquerda, mude os cantos ou esconda. **Facecam grande
   neste momento** aumenta por alguns segundos e volta; com pontos-chave (●) ela muda de tamanho e lugar ao longo do vídeo.
+  **Estilo:** retângulo ou círculo, borda colorida, sombra, brilho neon, espelhar, zoom na webcam e filtro só na facecam
+  (ou um dos estilos prontos: Limpo, Borda, Neon, Círculo, Reto).
+- **Efeitos:** filtro de cor do corte inteiro (Vívido, Cinema, Quente, Frio, P&B, Dramático, Vintage), vinheta, grão de filme e
+  barra de progresso; e efeitos que entram num momento: Flash, Zoom pulso, Tremor, Glitch, Desfoque, Filtro (ex.: P&B por
+  alguns segundos), Surgir do preto e Sumir no preto. Eles aparecem na linha do tempo e dá pra arrastar e mudar a duração.
 - **Mídia:** imagens (logo, sticker, meme), textos por cima e áudio extra (música, efeito) no tempo que você quiser; arraste na
   prévia e na linha do tempo.
 - **Cortar:** marque início (I) e fim (O) e tire o trecho (X); legenda, efeitos e mídia acompanham.

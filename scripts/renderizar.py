@@ -21,6 +21,7 @@ import numpy as np
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 from enquadrar import moldura  # noqa: E402
+import visual  # noqa: E402
 
 LARG, ALT, FPS = 1080, 1920, 30
 CAM_LARG, CAM_RAIO, CAM_MARGEM, CAM_BAIXO = 340, 28, 40, 60   # gameplay: tamanho e posição da webcam no vertical (px)
@@ -157,9 +158,12 @@ def renderizar(fonte, plano, saida, legenda=None, sfx=None, cru=False, ate=None)
     dur_saida = dur - tirado
     cam = gp.get("webcam")
     fc = gp.get("facecam") or {}                 # do editor: posição/tamanho da facecam no vertical, ou escondida
+    estilo_cam = dict(fc)                         # forma, borda, sombra, brilho, filtro, espelho, zoom (visual.py)
     if fc.get("visivel") is False:
         cam = None
     fchaves = sorted(ex.get("facecam_chaves") or [], key=lambda k: k["t"])
+    vis = ex.get("visual") or {}               # do editor: filtro de cor, vinheta, grão, barra de progresso
+    fxs = [f for f in (ex.get("fx") or []) if float(f.get("fim", 0)) > float(f.get("ini", 0))]
     ww = wh = 0
     if cam:                                    # gameplay: a webcam sai no mesmo quadro, colada à direita da faixa do jogo
         cx, cy, cw_, ch_ = (int(round(v * s)) for v, s in zip(cam, (W, H, W, H)))
@@ -176,7 +180,6 @@ def renderizar(fonte, plano, saida, legenda=None, sfx=None, cru=False, ate=None)
         cam_x, cam_y = LARG - CAM_MARGEM - larg_base, ALT - CAM_BAIXO - hb
         if fc.get("x") is not None and fc.get("y") is not None:      # None = posição padrão
             cam_x, cam_y = int(fc["x"]), int(fc["y"])
-        mascaras = {}
     else:
         dec = ["ffmpeg", "-nostdin", "-v", "error", "-i", fonte, "-t", f"{dur:.3f}", "-vf",
                f"fps={FPS},{crop}", "-f", "rawvideo", "-pix_fmt", "bgr24", "-"]
@@ -256,14 +259,21 @@ def renderizar(fonte, plano, saida, legenda=None, sfx=None, cru=False, ate=None)
         q = np.frombuffer(b, np.uint8).reshape(H, lq, 3)
         wc = q[:wh, bw:] if cam else None
         q = q[:, :bw] if cam else q
+        at = visual.ativos(fxs, t) if fxs else []          # efeitos no tempo agindo neste quadro
         x, y, w, h, _ = moldura(plano, t, sem_zoom=cru)
         ic = next((i for i, c in enumerate(plano["cenas"]) if c["ini"] <= t < c["fim"]), len(plano["cenas"]) - 1)
         x0 = xs[ic]
         s = LARG / w
         m = np.float32([[s, 0, -(x - x0) * s], [0, s, -y * s]])
+        if at:                                 # tremor e zoom pulso: mexem só na camada do vídeo
+            sc, dx, dy = visual.transformacao(at, t)
+            if abs(sc - 1) > 1e-4 or dx or dy:
+                A = np.float64([[sc, 0, (1 - sc) * LARG / 2 + dx], [0, sc, (1 - sc) * ALT / 2 + dy], [0, 0, 1]])
+                m = (A @ np.vstack([m, [0, 0, 1]]))[:2].astype(np.float32)
+                s *= sc
         out = cv2.warpAffine(q, m, (LARG, ALT), flags=cv2.INTER_LINEAR if s < 1 else cv2.INTER_CUBIC,
                              borderMode=cv2.BORDER_REPLICATE)
-        topo, base = int(np.ceil(max(0.0, -y * s))), int(min(ALT, np.floor((H - y) * s)))
+        topo, base = int(np.ceil(max(0.0, float(m[1, 2])))), int(min(ALT, np.floor(float(m[1, 1]) * H + float(m[1, 2]))))
         if topo > 0 or base < ALT:             # câmera aberta (gameplay): em cima e embaixo, o próprio jogo desfocado
             meio = out[topo:base]
             fundo = cv2.resize(cv2.resize(meio, (LARG // 24, ALT // 24), interpolation=cv2.INTER_AREA), (LARG, ALT),
@@ -271,6 +281,8 @@ def renderizar(fonte, plano, saida, legenda=None, sfx=None, cru=False, ate=None)
             fundo = cv2.GaussianBlur(fundo, (0, 0), 9) * 0.55
             out[:topo] = fundo[:topo].astype(np.uint8)
             out[base:] = fundo[base:].astype(np.uint8)
+        if at:
+            out = visual.desfoque(out, at)
         if cam:                                # webcam, cantos arredondados (posição/tamanho podem mudar no tempo)
             if fchaves:
                 fx, fy, fl = chave_em(fchaves, t, ("x", "y", "larg"))
@@ -279,9 +291,14 @@ def renderizar(fonte, plano, saida, legenda=None, sfx=None, cru=False, ate=None)
             lw = max(40, min(ww, int(round(fl / 2)) * 2))
             lh = max(2, int(round(lw * aspecto / 2)) * 2)
             img = wc if lw == ww else cv2.resize(wc, (lw, lh), interpolation=cv2.INTER_AREA)
-            if (lw, lh) not in mascaras:
-                mascaras[(lw, lh)] = mascara_arredondada(lw, lh, raio * lw / max(larg_base, 1) if fchaves else raio)
-            colar(out, img[:lh, :lw], mascaras[(lw, lh)], int(round(fx)), int(round(fy)))
+            visual.colar_facecam(out, img[:lh, :lw], int(round(fx)), int(round(fy)),
+                                 raio * lw / max(larg_base, 1) if fchaves else raio, estilo_cam)
+        if vis or at:                          # filtro de cor, glitch, vinheta e grão (o quadro todo)
+            out = visual.aplicar_filtro(out, visual.filtro_no_tempo(at, vis.get("filtro")))
+            if at:
+                out = visual.glitch(out, at, t)
+            out = visual.vinheta(out, float(vis.get("vinheta") or 0))
+            out = visual.grao(out, float(vis.get("grao") or 0), k)
         for s in sobre:                        # imagens e textos por cima (centro em x, y; some e aparece suave)
             if not (s["ini"] <= t < s["fim"]):
                 continue
@@ -290,6 +307,11 @@ def renderizar(fonte, plano, saida, legenda=None, sfx=None, cru=False, ate=None)
                 op *= min(1.0, (t - s["ini"]) / 0.15, (s["fim"] - t) / 0.15)
             ih, iw = s["img"].shape[:2]
             colar(out, s["img"], s["alfa"] * op, int(round(s["x"] - iw / 2)), int(round(s["y"] - ih / 2)))
+        if at:                                 # flash branco e fade pro preto
+            out = visual.sobreposicao_cor(out, at)
+        if vis.get("barra"):                   # barra de progresso (no tempo do vídeo final)
+            out = visual.barra(out, (escritos + 1) / max(1.0, dur_saida * FPS), vis.get("cor_barra") or "#FF4D3D",
+                               vis.get("pos_barra") or "base")
         pe.stdin.write(out.tobytes())
         escritos += 1
     pe.stdin.close()

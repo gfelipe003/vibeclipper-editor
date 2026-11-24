@@ -4,241 +4,391 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VibeClipper Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/estilo.css">
 <style>
-:root {
-  --bg: #0f1115; --painel: #171a21; --painel2: #1e222b; --borda: #2a2f3a; --texto: #e6e8ee; --fraco: #8b93a4;
-  --acento: #ff4d3d; --acento2: #ffb020; --ok: #2fbf71; --azul: #4c8dff; --verde: #2fbf71; --raio: 10px;
-}
-* { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: var(--bg); color: var(--texto);
-  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-button, input, select, textarea { font: inherit; color: inherit; }
-button { background: var(--painel2); border: 1px solid var(--borda); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
-button:hover { border-color: #3c4352; background: #252a35; }
-button.primario { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; }
-button.primario:hover { filter: brightness(1.08); }
-button:disabled { opacity: .5; cursor: default; }
-input[type=number], input[type=text], select, textarea { background: var(--bg); border: 1px solid var(--borda); border-radius: 6px; padding: 4px 6px; }
-textarea { width: 100%; resize: vertical; min-height: 44px; }
-input[type=range] { accent-color: var(--acento); width: 100%; }
-a.link { color: var(--fraco); text-decoration: none; white-space: nowrap; } a.link:hover { color: var(--texto); }
-.app { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
-header { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--borda); background: var(--painel); flex-wrap: wrap; }
-header h1 { font-size: 15px; margin: 0; white-space: nowrap; }
-header h1 b { color: var(--acento); }
-.tabs-cortes { display: flex; gap: 4px; flex-wrap: wrap; }
-.tabs-cortes button { padding: 5px 10px; font-size: 13px; }
-.tabs-cortes button.ativo { background: var(--acento); border-color: var(--acento); color: #fff; }
-.tabs-cortes button .ponto { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--acento2); margin-left: 5px; vertical-align: middle; }
-.espaco { flex: 1; }
-#estado { color: var(--fraco); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 420px; }
-#estado.ok { color: var(--ok); } #estado.erro { color: var(--acento); }
-main { display: grid; grid-template-columns: minmax(0, 1.5fr) auto minmax(320px, 400px); gap: 14px; padding: 14px 16px; min-height: 0; }
-.painel { background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio); min-height: 0; display: flex; flex-direction: column; }
-.painel > h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); margin: 0; padding: 10px 12px 0; font-weight: 600; }
-.palco { position: relative; margin: 10px 12px; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9; flex-shrink: 0; }
+/* ---------- editor ---------- */
+html, body { height: 100%; overflow: hidden; }
+.app { display: grid; grid-template-rows: 56px 1fr auto; height: 100vh; }
+header.barra-topo { display: flex; align-items: center; gap: 12px; padding: 0 14px; border-bottom: 1px solid var(--linha); background: var(--s1); min-width: 0; }
+.tabs-cortes { display: flex; gap: 2px; padding: 3px; background: var(--s0); border: 1px solid var(--linha); border-radius: 10px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.tabs-cortes button { background: transparent; border: 0; padding: 5px 11px; font-size: 12.5px; color: var(--fraco); border-radius: 7px; white-space: nowrap; font-weight: 500; }
+.tabs-cortes button:hover { color: var(--texto); background: var(--s3); }
+.tabs-cortes button.ativo { background: var(--s3); color: var(--texto); box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 1px 3px rgba(0,0,0,.4); }
+.tabs-cortes button .ponto { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--amarelo); margin-left: 6px; vertical-align: middle; }
+#projeto { max-width: 230px; }
+#estado { font-size: 12.5px; color: var(--fraco); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px; min-width: 0; display: inline-flex; align-items: center; gap: 7px; }
+#estado::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--fraco2); flex-shrink: 0; }
+#estado.ok { color: var(--texto); } #estado.ok::before { background: var(--verde); box-shadow: 0 0 0 3px rgba(47,191,113,.18); }
+#estado.erro { color: #ff8a80; } #estado.erro::before { background: var(--acento); box-shadow: 0 0 0 3px rgba(255,77,61,.2); }
+#estado.trabalhando::before { background: var(--amarelo); animation: pulsa 1s infinite; }
+@keyframes pulsa { 50% { opacity: .3; } }
+.grupo-bt { display: flex; gap: 4px; }
+main { display: grid; grid-template-columns: minmax(0, 1.45fr) auto minmax(360px, 430px); gap: 12px; padding: 12px; min-height: 0; background: var(--s0); }
+.painel { background: var(--s1); border: 1px solid var(--linha); border-radius: 14px; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.painel-cab { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid var(--linha); font-size: 12px; font-weight: 600; color: var(--fraco); letter-spacing: .02em; }
+.painel-cab .ic { width: 15px; height: 15px; }
+.painel-cab .selo { margin-left: auto; }
+.palco { position: relative; margin: 12px; background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 9; flex-shrink: 0; box-shadow: 0 0 0 1px var(--linha); }
 .palco video, .palco canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .palco video { object-fit: contain; }
-.dica { color: var(--fraco); font-size: 12.5px; padding: 0 12px 10px; }
-.dica kbd { background: var(--painel2); border: 1px solid var(--borda); border-radius: 4px; padding: 0 5px; font-size: 11.5px; }
-.previa-wrap { display: flex; flex-direction: column; align-items: center; padding: 10px 12px; min-height: 0; }
-#pv { height: min(calc(100vh - 330px), 720px); aspect-ratio: 9 / 16; background: #000; border-radius: 10px; box-shadow: 0 6px 30px rgba(0,0,0,.45); touch-action: none; }
-.lado { overflow: hidden; }
-.abas { display: flex; border-bottom: 1px solid var(--borda); }
-.abas button { flex: 1; border: 0; border-radius: 0; background: transparent; padding: 10px 2px; color: var(--fraco); border-bottom: 2px solid transparent; font-size: 13px; }
-.abas button.ativo { color: var(--texto); border-bottom-color: var(--acento); }
-.conteudo { overflow: auto; padding: 12px; flex: 1; min-height: 0; }
+.atalhos { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 0 14px 14px; color: var(--fraco); font-size: 12px; }
+.atalhos span { display: inline-flex; align-items: center; gap: 5px; }
+.previa-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px 18px; min-height: 0; flex: 1;
+  background: radial-gradient(circle at 50% 40%, rgba(255,255,255,.035), transparent 70%); }
+#pv { height: max(320px, min(calc(100vh - 404px), 760px)); aspect-ratio: 9 / 16; background: #000; border-radius: 14px; touch-action: none;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 20px 60px rgba(0,0,0,.6); }
+.previa-nota { font-size: 11.5px; color: var(--fraco2); text-align: center; padding: 0 14px 12px; }
+/* painel lateral: trilho de ícones + conteúdo */
+.lado { display: grid; grid-template-columns: 68px minmax(0, 1fr); }
+.trilho { display: flex; flex-direction: column; gap: 2px; padding: 8px 6px; border-right: 1px solid var(--linha); background: var(--s0); overflow-y: auto; }
+.trilho button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 2px 7px; background: transparent; border: 0; border-radius: 10px; color: var(--fraco); font-size: 10.5px; font-weight: 500; }
+.trilho button .ic { width: 19px; height: 19px; }
+.trilho button:hover { color: var(--texto); background: var(--s2); }
+.trilho button.ativo { color: var(--texto); background: var(--s3); }
+.trilho button.ativo .ic { color: var(--acento); }
+.conteudo { overflow: auto; min-height: 0; }
 .aba { display: none; } .aba.ativo { display: block; }
-.campo { margin-bottom: 12px; }
-.campo label { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--fraco); margin-bottom: 4px; gap: 8px; }
+.aba-cab { position: sticky; top: 0; z-index: 2; background: var(--s1); padding: 14px 16px 10px; border-bottom: 1px solid var(--linha); }
+.aba-cab h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.aba-cab p { margin: 3px 0 0; font-size: 12.5px; color: var(--fraco); }
+.secao { padding: 14px 16px; border-bottom: 1px solid var(--linha); }
+.secao:last-child { border-bottom: 0; }
+.secao-t { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--fraco); margin-bottom: 10px; }
+.campo { margin-bottom: 12px; } .campo:last-child { margin-bottom: 0; }
+.campo > label, .rotulo { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--fraco); margin-bottom: 6px; gap: 8px; }
+.campo > label b, .rotulo b { color: var(--texto); font-weight: 500; font-variant-numeric: tabular-nums; }
 .linha { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-.seg { display: inline-flex; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; }
-.seg button { border: 0; border-radius: 0; }
-.seg button.ativo { background: var(--acento); color: #fff; }
+.grade2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .lista { display: flex; flex-direction: column; gap: 6px; }
-.item { background: var(--painel2); border: 1px solid var(--borda); border-radius: 8px; padding: 8px; }
-.item.sel { border-color: var(--acento); }
-.item.agora { box-shadow: inset 3px 0 0 var(--acento2); }
-.item .topo { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
-.item .topo input[type=number] { width: 66px; }
-.item .topo .x { margin-left: auto; padding: 2px 8px; }
-.item input[type=text].leg { width: 100%; text-transform: uppercase; }
-.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.chip { font-size: 11.5px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--borda); cursor: pointer; user-select: none; }
-.chip.on { background: var(--acento); border-color: var(--acento); color: #fff; }
-.mini { font-size: 12px; padding: 3px 8px; }
-.bloco { border: 1px solid var(--borda); border-radius: 8px; padding: 10px; margin-bottom: 12px; background: rgba(255,255,255,.02); }
-.bloco h3 { margin: 0 0 8px; font-size: 13px; }
-.aviso { background: #2a2410; border: 1px solid #4a3d12; color: #f0d68a; border-radius: 8px; padding: 8px 10px; font-size: 12.5px; margin-bottom: 10px; }
-.tag { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--bg); color: var(--fraco); }
-footer { border-top: 1px solid var(--borda); background: var(--painel); padding: 8px 16px 12px; }
-.controles { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
-#tempo { font-variant-numeric: tabular-nums; color: var(--fraco); min-width: 190px; }
-#tl { width: 100%; height: 150px; display: block; cursor: pointer; border-radius: 6px; background: var(--bg); touch-action: none; }
-#finalVideo { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 9 / 16; max-height: 60vh; }
-@media (max-width: 1100px) {
-  .app { height: auto; min-height: 100vh; }
+.item { background: var(--s2); border: 1px solid var(--linha); border-radius: 10px; padding: 9px; transition: border-color .12s; }
+.item:hover { border-color: var(--linha2); }
+.item.sel { border-color: var(--acento); box-shadow: 0 0 0 3px rgba(255,77,61,.12); }
+.item.agora { box-shadow: inset 3px 0 0 var(--amarelo); }
+.item .topo { display: flex; gap: 6px; align-items: center; margin-bottom: 7px; flex-wrap: wrap; }
+.item .topo input[type=number], .item .linha input[type=number] { width: 62px; padding: 5px 6px; }
+.item .topo .x { margin-left: auto; }
+.item input[type=text].leg { width: 100%; text-transform: uppercase; font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.chip { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--s3); border: 1px solid transparent; cursor: pointer; user-select: none; color: var(--fraco); }
+.chip:hover { color: var(--texto); }
+.chip.on { background: var(--acento); color: #fff; }
+.cartao { border: 1px solid var(--linha); border-radius: 12px; padding: 12px; background: linear-gradient(180deg, rgba(255,255,255,.025), transparent); }
+.cartao h4 { margin: 0 0 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+.cartao h4 .ic { width: 15px; height: 15px; color: var(--amarelo); }
+.aviso { background: rgba(255,176,32,.08); border: 1px solid rgba(255,176,32,.25); color: #f3d38a; border-radius: 10px; padding: 9px 11px; font-size: 12.5px; margin-bottom: 12px; }
+.vazio { color: var(--fraco2); font-size: 12.5px; text-align: center; padding: 14px 6px; border: 1px dashed var(--linha2); border-radius: 10px; }
+/* filtros e efeitos */
+.filtros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.filtro { background: transparent; border: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; align-items: stretch; font-size: 11px; color: var(--fraco); }
+.filtro canvas { width: 100%; aspect-ratio: 9 / 13; border-radius: 9px; background: var(--s3); box-shadow: 0 0 0 1px var(--linha); transition: box-shadow .12s; }
+.filtro:hover canvas { box-shadow: 0 0 0 1px var(--linha2); }
+.filtro.ativo { color: var(--texto); font-weight: 600; }
+.filtro.ativo canvas { box-shadow: 0 0 0 2px var(--acento); }
+.fxgrade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.fxbt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 11px 4px 9px; background: var(--s2); border: 1px solid var(--linha); border-radius: 11px; font-size: 11px; color: var(--texto); font-weight: 500; }
+.fxbt:hover { border-color: var(--linha2); background: var(--s3); transform: translateY(-1px); }
+.fxbt .bolinha { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; }
+.fxbt .bolinha .ic { width: 16px; height: 16px; }
+.fxtag { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; }
+.fxtag i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+.presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 14px; }
+.preset { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 2px; background: var(--s2); border: 1px solid var(--linha); border-radius: 10px; font-size: 10.5px; color: var(--fraco); }
+.preset:hover { color: var(--texto); border-color: var(--linha2); }
+.preset .amostra { width: 34px; height: 26px; background: linear-gradient(135deg, #5a6478, #2a303c); }
+#finalVideo { width: 100%; border-radius: 12px; background: #000; aspect-ratio: 9 / 16; max-height: 62vh; box-shadow: 0 0 0 1px var(--linha); }
+/* rodapé: transporte + linha do tempo */
+footer { border-top: 1px solid var(--linha); background: var(--s1); padding: 10px 14px 12px; }
+.controles { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+#btPlay { width: 40px; height: 40px; border-radius: 50%; padding: 0; display: grid; place-items: center; background: var(--texto); color: #0b0c10; border: 0; }
+#btPlay:hover { transform: scale(1.05); }
+#btPlay .ic { width: 16px; height: 16px; }
+#tempo { font: 500 13px "JetBrains Mono", ui-monospace, monospace; color: var(--texto); min-width: 200px; letter-spacing: -.02em; }
+#tempo small { color: var(--fraco); }
+.legenda-tl { display: flex; gap: 14px; margin-left: auto; font-size: 11.5px; color: var(--fraco); flex-wrap: wrap; }
+.legenda-tl span { display: inline-flex; align-items: center; gap: 5px; }
+.legenda-tl i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+#tl { width: 100%; height: 190px; display: block; cursor: pointer; border-radius: 10px; background: var(--s0); touch-action: none; box-shadow: 0 0 0 1px var(--linha); }
+@media (max-width: 1180px) {
+  html, body { overflow: auto; }
+  .app { height: auto; min-height: 100vh; grid-template-rows: auto 1fr auto; }
+  header.barra-topo { flex-wrap: wrap; padding: 10px 14px; }
   main { grid-template-columns: 1fr; }
-  .painel { min-height: auto; }
   #pv { height: 70vh; }
-  .conteudo { max-height: 70vh; }
+  .conteudo { max-height: 75vh; }
 }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-video" viewBox="0 0 24 24"><path d="M22 8l-6 4 6 4V8z"/><rect x="2" y="6" width="14" height="12" rx="2.5"/></symbol>
+  <symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V5h16v2M9 19h6M12 5v14"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="10" r="3"/><path d="M7 18.5c1.2-2.6 3-3.6 5-3.6s3.8 1 5 3.6"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9z"/><path d="M18.5 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></symbol>
+  <symbol id="i-cut" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M10 9l5 3-5 3z"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4.5" width="4" height="15" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="4.5" width="4" height="15" rx="1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2L4 14h8l-1 8 9-12h-8z"/></symbol>
+  <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+  <symbol id="i-go" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="M12 3l9 9-9 9-9-9z"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-maximize" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+  <symbol id="i-shake" viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="2"/><path d="M3 8v8M21 8v8"/></symbol>
+  <symbol id="i-glitch" viewBox="0 0 24 24"><path d="M3 6h12M7 10h14M3 14h10M9 18h12"/></symbol>
+  <symbol id="i-blur" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" stroke-dasharray="2 3"/><circle cx="12" cy="12" r="10.5" stroke-dasharray="1 4"/></symbol>
+  <symbol id="i-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18z" fill="currentColor"/></symbol>
+  <symbol id="i-sunrise" viewBox="0 0 24 24"><path d="M12 2v6M5 10l1.5 1.5M19 10l-1.5 1.5M3 18h18M7 18a5 5 0 0 1 10 0M9 5l3-3 3 3"/></symbol>
+  <symbol id="i-sunset" viewBox="0 0 24 24"><path d="M12 8V2M5 10l1.5 1.5M19 10l-1.5 1.5M3 18h18M7 18a5 5 0 0 1 10 0M9 5l3 3 3-3"/></symbol>
+</svg>
 <div class="app">
-  <header>
-    <a class="link" href="/" title="Página inicial">← Início</a>
-    <h1><b>Vibe</b>Clipper · editor</h1>
-    <select id="projeto" title="Vídeo" style="max-width:240px"></select>
+  <header class="barra-topo">
+    <a class="btn ghost icone" href="/" title="Página inicial"><svg class="ic"><use href="#i-back"/></svg></a>
+    <a class="marca" href="/"><span class="logo"></span><span>Vibe<b>Clipper</b></span></a>
+    <span class="divisor"></span>
+    <select id="projeto" title="Vídeo"></select>
     <div class="tabs-cortes" id="tabsCortes"></div>
     <div class="espaco"></div>
     <span id="estado">carregando…</span>
-    <a class="link" href="/config" title="Configurações">⚙</a>
-    <button id="btDesfazer" title="Desfazer (Ctrl+Z)">↶</button>
-    <button id="btRefazer" title="Refazer (Ctrl+Y)">↷</button>
-    <button id="btDescartar" title="Apagar as edições deste corte e voltar ao automático">Voltar ao automático</button>
-    <button id="btRender" class="primario">Renderizar corte</button>
+    <span class="divisor"></span>
+    <div class="grupo-bt">
+      <button id="btDesfazer" class="btn ghost icone" title="Desfazer (Ctrl+Z)"><svg class="ic"><use href="#i-undo"/></svg></button>
+      <button id="btRefazer" class="btn ghost icone" title="Refazer (Ctrl+Y)"><svg class="ic"><use href="#i-redo"/></svg></button>
+      <a class="btn ghost icone" href="/config" title="Configurações"><svg class="ic"><use href="#i-sliders"/></svg></a>
+    </div>
+    <button id="btDescartar" class="btn" title="Apagar as edições deste corte e voltar ao automático"><svg class="ic"><use href="#i-reset"/></svg>Automático</button>
+    <button id="btRender" class="btn primario"><svg class="ic"><use href="#i-export"/></svg>Renderizar</button>
   </header>
   <main>
     <section class="painel">
-      <h2>Vídeo original · onde a câmera olha</h2>
+      <div class="painel-cab"><svg class="ic"><use href="#i-video"/></svg>Vídeo original<span class="selo" id="seloCam">câmera</span></div>
       <div class="palco" id="palco">
         <video id="v" preload="auto" playsinline></video>
         <canvas id="ov"></canvas>
       </div>
-      <div class="dica">Arraste o retângulo pra mover a câmera; <kbd>roda do mouse</kbd> aproxima/abre. Cada ajuste vira um ponto-chave no tempo atual.
-        <kbd>Espaço</kbd> toca/pausa · <kbd>←</kbd><kbd>→</kbd> 0,1 s (<kbd>Shift</kbd> 1 s) · <kbd>K</kbd> ponto da câmera · <kbd>I</kbd>/<kbd>O</kbd> marca início/fim · <kbd>X</kbd> remove o trecho marcado · <kbd>Del</kbd> apaga o selecionado</div>
+      <div class="atalhos">
+        <span>Arraste o quadro pra mover a câmera · <kbd>roda</kbd> zoom</span>
+        <span><kbd>Espaço</kbd> tocar</span>
+        <span><kbd>←</kbd><kbd>→</kbd> 0,1 s</span>
+        <span><kbd>K</kbd> ponto-chave</span>
+        <span><kbd>I</kbd><kbd>O</kbd> marcar</span>
+        <span><kbd>X</kbd> remover trecho</span>
+        <span><kbd>Del</kbd> apagar</span>
+        <span>Na prévia: arraste a facecam (o canto de baixo à esquerda redimensiona), imagens, textos e a legenda.</span>
+      </div>
     </section>
     <section class="painel">
-      <h2>Prévia 9:16</h2>
+      <div class="painel-cab"><svg class="ic"><use href="#i-film"/></svg>Prévia 9:16<span class="selo">1080 × 1920</span></div>
       <div class="previa-wrap"><canvas id="pv" width="540" height="960"></canvas></div>
-      <div class="dica" style="text-align:center">Arraste a facecam (canto de baixo à esquerda redimensiona), imagens, textos e a legenda.</div>
     </section>
     <section class="painel lado">
-      <div class="abas" id="abas">
-        <button data-aba="camera" class="ativo">Câmera</button>
-        <button data-aba="legenda">Legenda</button>
-        <button data-aba="facecam">Facecam</button>
-        <button data-aba="midia">Mídia</button>
-        <button data-aba="cortar">Cortar</button>
-        <button data-aba="final">Final</button>
-      </div>
+      <nav class="trilho" id="abas">
+        <button data-aba="camera" class="ativo"><svg class="ic"><use href="#i-video"/></svg>Câmera</button>
+        <button data-aba="legenda"><svg class="ic"><use href="#i-type"/></svg>Legenda</button>
+        <button data-aba="facecam"><svg class="ic"><use href="#i-cam"/></svg>Facecam</button>
+        <button data-aba="efeitos"><svg class="ic"><use href="#i-spark"/></svg>Efeitos</button>
+        <button data-aba="midia"><svg class="ic"><use href="#i-image"/></svg>Mídia</button>
+        <button data-aba="cortar"><svg class="ic"><use href="#i-cut"/></svg>Cortar</button>
+        <button data-aba="final"><svg class="ic"><use href="#i-down"/></svg>Final</button>
+      </nav>
       <div class="conteudo">
         <!-- CÂMERA -->
         <div class="aba ativo" id="aba-camera">
-          <div class="campo">
-            <label>Modo da câmera</label>
-            <div class="seg"><button id="modoAuto">Automática</button><button id="modoManual">Manual</button></div>
+          <div class="aba-cab"><h3>Câmera</h3><p>Pra onde o enquadramento vertical olha e quanto aproxima.</p></div>
+          <div class="secao">
+            <div class="campo">
+              <label>Modo</label>
+              <div class="seg largo"><button id="modoAuto">Automática</button><button id="modoManual">Manual</button></div>
+            </div>
+            <div id="camAutoInfo" class="nota-p">A automática segue você e quem aparece na tela. Arraste o quadro no vídeo original pra passar pro manual: ela vira pontos-chave que você ajusta.</div>
           </div>
-          <div id="camAutoInfo" class="dica" style="padding:0 0 10px">Automática: segue você e quem aparecer na tela. Arraste o retângulo pra passar pro manual (a câmera automática vira pontos-chave que você ajusta).</div>
-          <div class="bloco">
-            <h3>⚡ Zoom rápido neste momento</h3>
-            <div class="campo"><label><span>Intensidade</span><span id="zrVal"></span></label><input type="range" id="zrInt" min="1.1" max="2" step="0.05" value="1.35"></div>
-            <div class="campo"><label><span>Quanto tempo fica</span><span id="zrDurVal"></span></label><input type="range" id="zrDur" min="0.4" max="6" step="0.1" value="1.5"></div>
-            <button class="mini primario" id="btZoomRapido">Aplicar zoom aqui</button>
+          <div class="secao">
+            <div class="cartao">
+              <h4><svg class="ic"><use href="#i-zap"/></svg>Zoom rápido neste momento</h4>
+              <div class="campo"><label><span>Intensidade</span><b id="zrVal"></b></label><input type="range" id="zrInt" min="1.1" max="2" step="0.05" value="1.35"></div>
+              <div class="campo"><label><span>Quanto tempo fica</span><b id="zrDurVal"></b></label><input type="range" id="zrDur" min="0.4" max="6" step="0.1" value="1.5"></div>
+              <button class="btn primario pequeno" id="btZoomRapido">Aplicar zoom aqui</button>
+            </div>
           </div>
-          <div class="campo">
-            <label><span>Zoom no tempo atual</span><span id="zoomVal">1,00×</span></label>
-            <input type="range" id="zoom" min="0.5" max="2" step="0.01" value="1">
+          <div class="secao">
+            <div class="campo">
+              <label><span>Zoom no tempo atual</span><b id="zoomVal">1,00×</b></label>
+              <input type="range" id="zoom" min="0.5" max="2" step="0.01" value="1">
+            </div>
+            <div class="linha" style="margin-bottom:12px">
+              <button class="btn pequeno" id="btAddKey"><svg class="ic"><use href="#i-plus"/></svg>Ponto-chave</button>
+              <button class="btn pequeno" id="btCentro"><svg class="ic"><use href="#i-target"/></svg>Centralizar no jogo</button>
+            </div>
+            <div class="lista" id="listaKeys"></div>
           </div>
-          <div class="linha" style="margin-bottom:12px">
-            <button class="mini" id="btAddKey">+ Ponto-chave aqui</button>
-            <button class="mini" id="btCentro">Centralizar no jogo</button>
-          </div>
-          <div class="lista" id="listaKeys"></div>
         </div>
         <!-- LEGENDA -->
         <div class="aba" id="aba-legenda">
-          <div class="linha" style="gap:12px; margin-bottom:10px">
-            <div class="campo" style="margin:0"><label>Cor de destaque</label><input type="color" id="corLeg"></div>
-            <div class="campo" style="margin:0; flex:1"><label><span>Tamanho</span><span id="tamVal"></span></label><input type="range" id="tamLeg" min="60" max="150" step="1"></div>
+          <div class="aba-cab"><h3>Legenda</h3><p>Clique numa palavra pra pôr ou tirar o destaque (números sempre ficam em destaque).</p></div>
+          <div class="secao">
+            <div class="linha" style="gap:14px; margin-bottom:12px; flex-wrap:nowrap">
+              <div class="campo" style="margin:0"><label>Destaque</label><input type="color" id="corLeg"></div>
+              <div class="campo" style="margin:0; flex:1"><label><span>Tamanho</span><b id="tamVal"></b></label><input type="range" id="tamLeg" min="60" max="150" step="1"></div>
+            </div>
+            <div class="campo"><label><span>Altura na tela</span><b id="yVal"></b></label><input type="range" id="yLeg" min="200" max="1820" step="5"></div>
+            <div class="linha" style="justify-content:space-between">
+              <div class="linha">
+                <button class="btn pequeno" id="btNovoBloco"><svg class="ic"><use href="#i-plus"/></svg>Bloco</button>
+                <button class="btn pequeno" id="btDividir"><svg class="ic"><use href="#i-cut"/></svg>Dividir</button>
+              </div>
+              <label class="switch"><input type="checkbox" id="efeitos"><span></span>Efeitos sonoros</label>
+            </div>
           </div>
-          <div class="campo"><label><span>Altura na tela</span><span id="yVal"></span></label><input type="range" id="yLeg" min="200" max="1820" step="5"></div>
-          <div class="linha" style="margin-bottom:10px">
-            <button class="mini" id="btNovoBloco">+ Bloco aqui</button>
-            <button class="mini" id="btDividir">Dividir no tempo atual</button>
-            <label class="linha mini" style="color:var(--fraco)"><input type="checkbox" id="efeitos"> Efeitos sonoros</label>
-          </div>
-          <div class="dica" style="padding:0 0 8px">Clique numa palavra pra pôr/tirar o destaque (números sempre ficam em destaque).</div>
-          <div class="lista" id="listaLeg"></div>
+          <div class="secao"><div class="lista" id="listaLeg"></div></div>
         </div>
         <!-- FACECAM -->
         <div class="aba" id="aba-facecam">
-          <div id="semCam" class="aviso" style="display:none">Este corte não tem facecam (não achei webcam no vídeo).</div>
-          <div class="campo"><label class="linha" style="justify-content:flex-start;color:var(--texto)"><input type="checkbox" id="camVisivel"> Mostrar a facecam</label></div>
-          <div class="campo"><label><span>Largura</span><span id="camLargVal"></span></label><input type="range" id="camLarg" min="140" max="1080" step="2"></div>
-          <div class="campo"><label><span>Cantos arredondados</span><span id="camRaioVal"></span></label><input type="range" id="camRaio" min="0" max="120" step="1"></div>
-          <div class="campo"><label>Posição rápida</label>
-            <div class="linha">
-              <button class="mini" data-pos="se">↖ Cima esq.</button><button class="mini" data-pos="sd">↗ Cima dir.</button>
-              <button class="mini" data-pos="ie">↙ Baixo esq.</button><button class="mini" data-pos="id">↘ Baixo dir.</button>
-              <button class="mini" data-pos="padrao">Padrão</button>
+          <div class="aba-cab"><h3>Facecam</h3><p>Posição, tamanho e estilo da sua webcam no vertical.</p></div>
+          <div class="secao">
+            <div id="semCam" class="aviso" style="display:none">Este corte não tem facecam (não achei webcam no vídeo).</div>
+            <div class="campo"><label class="switch"><input type="checkbox" id="camVisivel"><span></span>Mostrar a facecam</label></div>
+            <div class="campo"><label><span>Largura</span><b id="camLargVal"></b></label><input type="range" id="camLarg" min="140" max="1080" step="2"></div>
+            <div class="campo"><label><span>Cantos arredondados</span><b id="camRaioVal"></b></label><input type="range" id="camRaio" min="0" max="120" step="1"></div>
+            <div class="campo"><label>Posição rápida</label>
+              <div class="grade-pos">
+                <button class="btn pequeno" data-pos="se">↖ Cima esq.</button><button class="btn pequeno" data-pos="sd">↗ Cima dir.</button>
+                <button class="btn pequeno" data-pos="ie">↙ Baixo esq.</button><button class="btn pequeno" data-pos="id">↘ Baixo dir.</button>
+                <button class="btn pequeno" data-pos="padrao" style="grid-column: span 2">Posição padrão</button>
+              </div>
             </div>
           </div>
-          <div class="bloco">
-            <h3>⚡ Facecam grande neste momento</h3>
-            <div class="campo"><label><span>Tamanho</span><span id="fgTamVal"></span></label><input type="range" id="fgTam" min="300" max="1080" step="10" value="760"></div>
-            <div class="campo"><label><span>Quanto tempo fica</span><span id="fgDurVal"></span></label><input type="range" id="fgDur" min="0.5" max="10" step="0.1" value="3"></div>
-            <div class="linha"><button class="mini primario" id="btFaceGrande">Aplicar aqui</button>
-              <label class="linha mini" style="color:var(--fraco)"><input type="checkbox" id="fgCentro" checked> no centro da tela</label></div>
+          <div class="secao">
+            <div class="secao-t">Estilo</div>
+            <div class="presets" id="presetsCam"></div>
+            <div class="campo"><label>Forma</label>
+              <div class="seg largo"><button id="formaRet">Retângulo</button><button id="formaCirc">Círculo</button></div></div>
+            <div class="linha" style="gap:14px; margin-bottom:12px; flex-wrap:nowrap">
+              <div class="campo" style="margin:0; flex:1"><label><span>Borda</span><b id="camBordaVal"></b></label><input type="range" id="camBorda" min="0" max="24" step="1"></div>
+              <div class="campo" style="margin:0"><label>Cor</label><input type="color" id="camCorBorda"></div>
+            </div>
+            <div class="campo"><label><span>Zoom na webcam</span><b id="camZoomVal"></b></label><input type="range" id="camZoom" min="1" max="2" step="0.02"></div>
+            <div class="campo"><label>Filtro da facecam</label><select id="camFiltro" style="width:100%"></select></div>
+            <div class="grade2">
+              <label class="switch"><input type="checkbox" id="camSombra"><span></span>Sombra</label>
+              <label class="switch"><input type="checkbox" id="camBrilho"><span></span>Brilho neon</label>
+              <label class="switch"><input type="checkbox" id="camEspelhar"><span></span>Espelhar</label>
+            </div>
           </div>
-          <div class="bloco">
-            <h3>Facecam no tempo (pontos-chave)</h3>
-            <div class="dica" style="padding:0 0 8px">Com pontos-chave, a facecam muda de tamanho e lugar ao longo do vídeo: arrastar ou redimensionar na prévia mexe no ponto do tempo atual.</div>
-            <div class="linha" style="margin-bottom:8px"><button class="mini" id="btFaceKey">+ Ponto da facecam aqui</button><button class="mini" id="btFaceSemAnim">Tirar animação</button></div>
+          <div class="secao">
+            <div class="cartao">
+              <h4><svg class="ic"><use href="#i-maximize"/></svg>Facecam grande neste momento</h4>
+              <div class="campo"><label><span>Tamanho</span><b id="fgTamVal"></b></label><input type="range" id="fgTam" min="300" max="1080" step="10" value="760"></div>
+              <div class="campo"><label><span>Quanto tempo fica</span><b id="fgDurVal"></b></label><input type="range" id="fgDur" min="0.5" max="10" step="0.1" value="3"></div>
+              <div class="linha" style="justify-content:space-between"><button class="btn primario pequeno" id="btFaceGrande">Aplicar aqui</button>
+                <label class="switch"><input type="checkbox" id="fgCentro" checked><span></span>no centro</label></div>
+            </div>
+          </div>
+          <div class="secao">
+            <div class="secao-t">Animação (pontos-chave)</div>
+            <div class="nota-p">Com pontos-chave, a facecam muda de tamanho e lugar ao longo do vídeo: arrastar ou redimensionar na prévia mexe no ponto do tempo atual.</div>
+            <div class="linha" style="margin-bottom:10px"><button class="btn pequeno" id="btFaceKey"><svg class="ic"><use href="#i-plus"/></svg>Ponto da facecam</button><button class="btn pequeno" id="btFaceSemAnim">Tirar animação</button></div>
             <div class="lista" id="listaFaceKeys"></div>
           </div>
         </div>
+        <!-- EFEITOS -->
+        <div class="aba" id="aba-efeitos">
+          <div class="aba-cab"><h3>Efeitos</h3><p>Visual do corte inteiro e efeitos que entram num momento.</p></div>
+          <div class="secao">
+            <div class="secao-t">Filtro de cor</div>
+            <div class="filtros" id="gradeFiltros"></div>
+          </div>
+          <div class="secao">
+            <div class="secao-t">Acabamento</div>
+            <div class="campo"><label><span>Vinheta</span><b id="vinVal"></b></label><input type="range" id="visVinheta" min="0" max="1" step="0.05"></div>
+            <div class="campo"><label><span>Grão de filme</span><b id="graoVal"></b></label><input type="range" id="visGrao" min="0" max="1" step="0.05"></div>
+            <div class="linha" style="justify-content:space-between">
+              <label class="switch"><input type="checkbox" id="visBarra"><span></span>Barra de progresso</label>
+              <div class="linha"><div class="seg"><button id="barraTopo" class="pequeno">Topo</button><button id="barraBase" class="pequeno">Base</button></div><input type="color" id="visCorBarra"></div>
+            </div>
+          </div>
+          <div class="secao">
+            <div class="secao-t">Efeitos no tempo <span style="text-transform:none;letter-spacing:0;font-weight:500">entram no tempo atual</span></div>
+            <div class="fxgrade" id="fxGrade"></div>
+          </div>
+          <div class="secao"><div class="lista" id="listaFx"></div></div>
+        </div>
         <!-- MÍDIA -->
         <div class="aba" id="aba-midia">
-          <div class="linha" style="margin-bottom:10px">
-            <button class="mini primario" id="btAddImg">+ Imagem</button>
-            <button class="mini primario" id="btAddAudio">+ Áudio</button>
-            <button class="mini primario" id="btAddTexto">+ Texto</button>
+          <div class="aba-cab"><h3>Mídia</h3><p>Imagens, textos e áudios por cima do corte. Tudo entra no tempo atual.</p></div>
+          <div class="secao">
+            <div class="grade3">
+              <button class="fxbt" id="btAddImg"><span class="bolinha" style="background:rgba(76,141,255,.16);color:#7aa8ff"><svg class="ic"><use href="#i-image"/></svg></span>Imagem</button>
+              <button class="fxbt" id="btAddTexto"><span class="bolinha" style="background:rgba(139,108,255,.16);color:#a995ff"><svg class="ic"><use href="#i-type"/></svg></span>Texto</button>
+              <button class="fxbt" id="btAddAudio"><span class="bolinha" style="background:rgba(47,191,113,.16);color:#5fd394"><svg class="ic"><use href="#i-music"/></svg></span>Áudio</button>
+            </div>
             <input type="file" id="arqImg" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
             <input type="file" id="arqAudio" accept="audio/*,.mp3,.wav,.m4a,.ogg" hidden>
+            <div class="nota-p" style="margin:10px 0 0">Arraste imagens e textos na prévia; na linha do tempo, arraste o bloco pra mudar quando aparece (as bordas mudam a duração).</div>
           </div>
-          <div class="dica" style="padding:0 0 8px">Tudo entra no tempo atual. Arraste imagens e textos na prévia; na linha do tempo, arraste o bloco pra mudar quando aparece (bordas mudam a duração).</div>
-          <div class="lista" id="listaMidia"></div>
+          <div class="secao"><div class="lista" id="listaMidia"></div></div>
         </div>
         <!-- CORTAR -->
         <div class="aba" id="aba-cortar">
-          <div class="bloco">
-            <h3>✂ Tirar um trecho do corte</h3>
-            <div class="linha" style="margin-bottom:8px">
-              <button class="mini" id="btMarcaIni">[ Início aqui (I)</button>
-              <button class="mini" id="btMarcaFim">Fim aqui (O) ]</button>
-            </div>
-            <div class="dica" style="padding:0 0 8px" id="marcaTxt">Marque o início e o fim do trecho que quer tirar.</div>
-            <div class="linha">
-              <button class="mini primario" id="btRemover">✂ Remover trecho marcado (X)</button>
+          <div class="aba-cab"><h3>Cortar</h3><p>Tire trechos do corte. Eles saem quando você renderizar.</p></div>
+          <div class="secao">
+            <div class="cartao">
+              <h4><svg class="ic"><use href="#i-cut"/></svg>Tirar um trecho</h4>
+              <div class="grade2" style="margin-bottom:10px">
+                <button class="btn pequeno" id="btMarcaIni">[ Início aqui (I)</button>
+                <button class="btn pequeno" id="btMarcaFim">Fim aqui (O) ]</button>
+              </div>
+              <div class="nota-p" id="marcaTxt">Marque o início e o fim do trecho que quer tirar.</div>
+              <button class="btn primario pequeno" id="btRemover"><svg class="ic"><use href="#i-cut"/></svg>Remover trecho marcado (X)</button>
             </div>
           </div>
-          <div class="linha" style="margin-bottom:12px">
-            <button class="mini" id="btTirarAntes">Tirar tudo antes daqui</button>
-            <button class="mini" id="btTirarDepois">Tirar tudo depois daqui</button>
+          <div class="secao">
+            <div class="grade2" style="margin-bottom:12px">
+              <button class="btn pequeno" id="btTirarAntes">Tirar tudo antes daqui</button>
+              <button class="btn pequeno" id="btTirarDepois">Tirar tudo depois daqui</button>
+            </div>
+            <div class="nota-p" id="durFinal"></div>
+            <div class="lista" id="listaRem"></div>
           </div>
-          <div class="dica" style="padding:0 0 8px" id="durFinal"></div>
-          <div class="lista" id="listaRem"></div>
         </div>
         <!-- FINAL -->
         <div class="aba" id="aba-final">
-          <div id="finalInfo" class="dica" style="padding:0 0 8px"></div>
-          <div class="linha" style="margin-bottom:10px">
-            <a id="btBaixar" class="mini" download style="display:none; background:var(--acento); color:#fff; border-radius:8px; padding:6px 12px; text-decoration:none; font-weight:600">⬇ Baixar MP4</a>
-            <button class="mini" id="btPasta">Abrir pasta dos cortes</button>
+          <div class="aba-cab"><h3>Vídeo final</h3><p id="finalInfo"></p></div>
+          <div class="secao">
+            <div class="linha" style="margin-bottom:12px">
+              <a id="btBaixar" class="btn primario pequeno" download style="display:none"><svg class="ic"><use href="#i-down"/></svg>Baixar MP4</a>
+              <button class="btn pequeno" id="btPasta"><svg class="ic"><use href="#i-folder"/></svg>Abrir pasta dos cortes</button>
+            </div>
+            <video id="finalVideo" controls playsinline></video>
           </div>
-          <video id="finalVideo" controls playsinline></video>
         </div>
       </div>
     </section>
   </main>
   <footer>
     <div class="controles">
-      <button id="btPlay" style="min-width:70px">▶ Tocar</button>
+      <button id="btPlay" title="Tocar / pausar (Espaço)"><svg class="ic"><use href="#i-play"/></svg></button>
       <span id="tempo">0,0 / 0,0 s</span>
-      <span class="dica" style="padding:0">Clique pra ir; arraste blocos (legenda, mídia), bordas e pontos (◆ câmera, ● facecam). Trechos vermelhos foram removidos.</span>
+      <div class="legenda-tl">
+        <span><i style="background:#3b4252"></i>Legenda</span>
+        <span><i style="background:#e040fb"></i>Efeitos</span>
+        <span><i style="background:#ffb020"></i>Câmera</span>
+        <span><i style="background:#4c8dff"></i>Facecam</span>
+        <span><i style="background:#6b4fc8"></i>Mídia</span>
+        <span><i style="background:rgba(255,77,61,.7)"></i>Removido</span>
+      </div>
     </div>
     <canvas id="tl"></canvas>
   </footer>
@@ -259,6 +409,135 @@ let hist = [], futuro = [], salvarTimer = null, sel = { tipo: null, i: -1 }, mar
 const v = $("#v"), ov = $("#ov"), pv = $("#pv"), tl = $("#tl");
 const pctx = pv.getContext("2d"), octx = ov.getContext("2d"), tctx = tl.getContext("2d");
 const imagens = {}, audios = {};
+
+// ---------- efeitos visuais (as mesmas contas do scripts/visual.py) ----------
+const FILTROS = {
+  nenhum:    { nome: "Original",  css: [], tinta: null },
+  vivido:    { nome: "Vívido",    css: [["saturate", 1.4], ["contrast", 1.08]], tinta: null },
+  cinema:    { nome: "Cinema",    css: [["contrast", 1.12], ["saturate", 0.85], ["brightness", 1.04]], tinta: ["#A8D8DC", 0.22] },
+  quente:    { nome: "Quente",    css: [["saturate", 1.15], ["contrast", 1.04], ["brightness", 1.08]], tinta: ["#FFD6A0", 0.32] },
+  frio:      { nome: "Frio",      css: [["saturate", 0.95], ["brightness", 1.08]], tinta: ["#B4D0FF", 0.32] },
+  pb:        { nome: "P&B",       css: [["grayscale", 1], ["contrast", 1.18]], tinta: null },
+  dramatico: { nome: "Dramático", css: [["contrast", 1.32], ["saturate", 1.12], ["brightness", 0.92]], tinta: null },
+  vintage:   { nome: "Vintage",   css: [["contrast", 0.88], ["saturate", 0.72], ["sepia", 0.28], ["brightness", 1.08]], tinta: null },
+};
+function filtroCSS(nome) { const f = FILTROS[nome]; return f && f.css.length ? f.css.map(([o, a]) => `${o}(${a})`).join(" ") : ""; }
+function tinta(ctx, nome, x, y, w, h) {
+  const f = FILTROS[nome]; if (!f || !f.tinta) return;
+  ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = f.tinta[1]; ctx.fillStyle = f.tinta[0]; ctx.fillRect(x, y, w, h); ctx.restore();
+}
+const FX = {
+  flash:         { nome: "Flash",           ic: "zap",      cor: "#e8e9f0", dur: 0.35, forca: 0.85 },
+  pulso:         { nome: "Zoom pulso",      ic: "maximize", cor: "#ffb020", dur: 0.5,  forca: 0.6 },
+  tremor:        { nome: "Tremor",          ic: "shake",    cor: "#ff7a3d", dur: 0.7,  forca: 0.6 },
+  glitch:        { nome: "Glitch",          ic: "glitch",   cor: "#e040fb", dur: 0.45, forca: 0.7 },
+  desfoque:      { nome: "Desfoque",        ic: "blur",     cor: "#4c8dff", dur: 1.0,  forca: 0.6 },
+  filtro:        { nome: "Filtro",          ic: "contrast", cor: "#9aa3b5", dur: 2.0,  forca: 1, filtro: "pb" },
+  entrada_preto: { nome: "Surgir do preto", ic: "sunrise",  cor: "#6b7385", dur: 0.6,  forca: 1 },
+  saida_preto:   { nome: "Sumir no preto",  ic: "sunset",   cor: "#6b7385", dur: 0.6,  forca: 1 },
+};
+const PRESETS_CAM = [
+  { nome: "Limpo",  est: { forma: "retangulo", borda: 0, sombra: true, brilho: false, raio: 28 }, css: "border-radius:6px;box-shadow:0 3px 8px #000" },
+  { nome: "Borda",  est: { forma: "retangulo", borda: 6, cor_borda: "#FFFFFF", sombra: true, brilho: false, raio: 28 }, css: "border-radius:6px;box-shadow:0 0 0 2px #fff" },
+  { nome: "Neon",   est: { forma: "retangulo", borda: 4, cor_borda: "#FF4D3D", sombra: false, brilho: true, raio: 28 }, css: "border-radius:6px;box-shadow:0 0 0 2px #ff4d3d,0 0 10px #ff4d3d" },
+  { nome: "Círculo", est: { forma: "circulo", borda: 6, cor_borda: "#FFFFFF", sombra: true, brilho: false }, css: "width:26px;border-radius:50%;box-shadow:0 0 0 2px #fff" },
+  { nome: "Reto",   est: { forma: "retangulo", borda: 0, sombra: false, brilho: false, raio: 0 }, css: "border-radius:0" },
+];
+const hashN = (n) => { const x = Math.sin(n * 12.9898) * 43758.5453; return x - Math.floor(x); };
+function envelopeFx(f, t) {
+  const a = +f.ini, b = +f.fim; if (!(a <= t && t < b) || b - a < 1e-3) return 0;
+  const u = (t - a) / (b - a);
+  if (f.tipo === "flash") return (1 - u) ** 2;
+  if (f.tipo === "pulso") return u < 0.25 ? suave(u / 0.25) : 1 - suave((u - 0.25) / 0.75);
+  if (f.tipo === "entrada_preto") return 1 - u;
+  if (f.tipo === "saida_preto") return u;
+  const borda = Math.min(0.12, (b - a) / 3); return borda > 0 ? Math.min(1, (t - a) / borda, (b - t) / borda) : 1;
+}
+function fxAtivos(t) { return (S.ed.fx || []).filter(f => f.ini <= t && t < f.fim).map(f => [f, envelopeFx(f, t)]); }
+function transformacaoFx(at, t) {
+  let s = 1, dx = 0, dy = 0;
+  for (const [f, e] of at) { const k = f.forca ?? 0.6;
+    if (f.tipo === "tremor") { const A = 30 * k * e; dx += A * (Math.sin(t * 71) + 0.5 * Math.sin(t * 131)); dy += A * (Math.cos(t * 59) + 0.5 * Math.sin(t * 97)); s *= 1 + 2.2 * A / 1080; }
+    else if (f.tipo === "pulso") s *= 1 + 0.28 * k * e; }
+  return [s, dx, dy];
+}
+function filtroNoTempo(at, padrao) { const f = at.find(([f, e]) => f.tipo === "filtro" && e > 0.5); return f ? (f[0].filtro || "pb") : padrao; }
+function noFinal(t) { let tirado = 0; for (const [a, b] of remover()) { if (t >= b) tirado += b - a; else if (t >= a) return a - tirado; } return t - tirado; }
+const camada = document.createElement("canvas"); camada.width = 540; camada.height = 960; const lctx = camada.getContext("2d");
+const ruidos = [...Array(6)].map(() => {
+  const c = document.createElement("canvas"); c.width = 270; c.height = 480; const x = c.getContext("2d"), d = x.createImageData(270, 480);
+  for (let p = 0; p < d.data.length; p += 4) { const n = Math.sqrt(-2 * Math.log(Math.random() + 1e-9)) * Math.cos(2 * Math.PI * Math.random());
+    const v_ = n > 0 ? 255 : 0; d.data[p] = d.data[p + 1] = d.data[p + 2] = v_; d.data[p + 3] = Math.min(255, Math.abs(n) * 34); }
+  x.putImageData(d, 0, 0); return c;
+});
+function camVisual(cb) {
+  if (S.ed.facecam.forma === "circulo") { const s = Math.min(cb.w, cb.h);
+    return { x: cb.x + Math.floor((cb.w - s) / 2), y: cb.y + Math.floor((cb.h - s) / 2), w: s, h: s, r: s / 2, cx: (cb.w - s) / 2 / cb.w, cy: (cb.h - s) / 2 / cb.h, fw: s / cb.w, fh: s / cb.h }; }
+  return { x: cb.x, y: cb.y, w: cb.w, h: cb.h, r: cb.r, cx: 0, cy: 0, fw: 1, fh: 1 };
+}
+function desenhaFacecam(ctx, t) {
+  const cb = camBox(t); if (!cb || S.ed.facecam.visivel === false) return;
+  const fc = S.ed.facecam, g = camVisual(cb), cor = fc.cor_borda || "#FFFFFF";
+  const X = g.x * K, Y = g.y * K, W = g.w * K, H = g.h * K, R = Math.max(0, g.r * K), B = (+fc.borda || 0) * K;
+  const forma = () => { ctx.beginPath(); ctx.roundRect(X - B, Y - B, W + 2 * B, H + 2 * B, Math.max(0, R + B)); };
+  if (fc.sombra) { ctx.save(); ctx.shadowColor = "rgba(0,0,0,.55)"; ctx.shadowBlur = 28 * K; ctx.shadowOffsetY = 10 * K; ctx.fillStyle = "#000"; forma(); ctx.fill(); ctx.restore(); }
+  if (fc.brilho) { ctx.save(); ctx.shadowColor = cor; ctx.shadowBlur = 32 * K; ctx.fillStyle = cor; forma(); ctx.fill(); ctx.fill(); ctx.restore(); }
+  if (B > 0) { ctx.fillStyle = cor; forma(); ctx.fill(); }
+  ctx.save(); ctx.beginPath(); ctx.roundRect(X, Y, W, H, Math.min(R, W / 2, H / 2)); ctx.clip();
+  let [sx, sy, sw, sh] = cb.src; const z = clamp(+fc.zoom || 1, 1, 2.5);
+  sx += sw * (1 - 1 / z) / 2; sy += sh * (1 - 1 / z) / 2; sw /= z; sh /= z;
+  sx += sw * g.cx; sy += sh * g.cy; sw *= g.fw; sh *= g.fh;
+  if (fc.espelhar) { ctx.translate(2 * X + W, 0); ctx.scale(-1, 1); }
+  const f = filtroCSS(fc.filtro); if (f) ctx.filter = f;
+  ctx.drawImage(v, sx * v.videoWidth, sy * v.videoHeight, sw * v.videoWidth, sh * v.videoHeight, X, Y, W, H);
+  ctx.filter = "none"; tinta(ctx, fc.filtro, X, Y, W, H);
+  ctx.restore();
+}
+function glitchPrevia(at, t) {
+  const [f, e] = at.find(([f]) => f.tipo === "glitch"), k = (f.forca ?? 0.6) * e, n = Math.floor(t * 15);
+  const W = 540, H = 960, im = pctx.getImageData(0, 0, W, H), d = im.data, off = Math.round((10 + 26 * hashN(n)) * k * K);
+  if (off) { const src = new Uint8ClampedArray(d);
+    for (let yy = 0; yy < H; yy++) { const r = yy * W * 4;
+      for (let xx = 0; xx < W; xx++) { const p = r + xx * 4; if (xx >= off) d[p] = src[p - off * 4]; if (xx < W - off) d[p + 2] = src[p + off * 4 + 2]; } } }
+  for (let i = 0; i < 3; i++) {
+    if (hashN(n * 3 + i + 0.5) <= 0.35) continue;
+    const y0 = Math.floor(hashN(n * 7 + i) * H * 0.9), hh = Math.floor((20 + hashN(n * 11 + i) * 110) * K), dd = Math.round((hashN(n * 13 + i) - 0.5) * 120 * k * K);
+    if (!dd) continue; const src = new Uint8ClampedArray(d);
+    for (let yy = y0; yy < Math.min(H, y0 + hh); yy++) { const r = yy * W * 4;
+      for (let xx = 0; xx < W; xx++) { const xs = ((xx - dd) % W + W) % W; for (let c = 0; c < 3; c++) d[r + xx * 4 + c] = src[r + xs * 4 + c]; } }
+  }
+  pctx.putImageData(im, 0, 0);
+}
+function acabamentoPrevia(t, vis) {
+  if (vis.vinheta > 0.01) { const r = Math.hypot(270, 480), g = pctx.createRadialGradient(270, 480, 0, 270, 480, r);
+    g.addColorStop(0.5, "rgba(0,0,0,0)"); g.addColorStop(1, `rgba(0,0,0,${vis.vinheta})`); pctx.fillStyle = g; pctx.fillRect(0, 0, 540, 960); }
+  if (vis.grao > 0.01) { pctx.save(); pctx.globalAlpha = vis.grao; pctx.imageSmoothingEnabled = false; pctx.drawImage(ruidos[Math.floor(t * 30) % 6], 0, 0, 540, 960); pctx.restore(); }
+}
+function sobreposicaoPrevia(at) {
+  for (const [f, e] of at) { const a = (f.forca ?? 0.8) * e; if (a <= 0.005) continue;
+    if (f.tipo === "flash") { pctx.fillStyle = `rgba(255,255,255,${a})`; pctx.fillRect(0, 0, 540, 960); }
+    else if (f.tipo === "entrada_preto" || f.tipo === "saida_preto") { pctx.fillStyle = `rgba(0,0,0,${Math.min(a, 1)})`; pctx.fillRect(0, 0, 540, 960); } }
+}
+function barraPrevia(t, vis) {
+  const h = 12 * K, y0 = vis.pos_barra === "topo" ? 0 : 960 - h, p = clamp(noFinal(t) / Math.max(durFinal(), 0.01), 0, 1);
+  pctx.fillStyle = "rgba(0,0,0,.4)"; pctx.fillRect(0, y0, 540, h);
+  pctx.fillStyle = vis.cor_barra || "#FF4D3D"; pctx.fillRect(0, y0, 540 * p, h);
+}
+let miniT = 0;
+function desenhaMiniaturas(forcar) {
+  if (!S || !$("#aba-efeitos").classList.contains("ativo")) return;
+  const agora = performance.now(); if (!forcar && agora - miniT < 450) return; miniT = agora;
+  document.querySelectorAll("#gradeFiltros .filtro").forEach(b => {
+    const c = b.querySelector("canvas"), x = c.getContext("2d"), nome = b.dataset.f;
+    if (c.width !== 90) { c.width = 90; c.height = 130; }
+    x.filter = filtroCSS(nome) || "none"; x.drawImage(camada, 0, 90, 540, 780, 0, 0, 90, 130); x.filter = "none"; tinta(x, nome, 0, 0, 90, 130);
+  });
+}
+const icone = (n) => `<svg class="ic"><use href="#i-${n}"/></svg>`;
+function padroesEfeitos() {
+  S.ed.visual = Object.assign({ filtro: "nenhum", vinheta: 0, grao: 0, barra: false, cor_barra: "#FF4D3D", pos_barra: "base" }, S.ed.visual || {});
+  S.ed.fx = S.ed.fx || [];
+}
 
 // ---------- pontos-chave genéricos (suave entre eles: o mesmo do render) ----------
 function chaveEm(ks, t, campos) {
@@ -426,31 +705,42 @@ function durFinal() { return S.plano.dur - remover().reduce((s, [a, b]) => s + (
 const K = 0.5;
 function desenhaPrevia() {
   if (!S || !v.videoWidth) return;
-  const t = v.currentTime, P = S.plano, kv = v.videoWidth / P.W;
+  const t = v.currentTime, P = S.plano, kv = v.videoWidth / P.W, at = fxAtivos(t), vis = S.ed.visual;
   const [x, y, w, h] = moldura(t), s = 540 / w;
-  pctx.setTransform(1, 0, 0, 1, 0, 0); pctx.globalAlpha = 1;
-  pctx.fillStyle = "#000"; pctx.fillRect(0, 0, 540, 960);
+  // 1) camada: vídeo (com tremor, zoom pulso e desfoque) + facecam
+  lctx.setTransform(1, 0, 0, 1, 0, 0); lctx.globalAlpha = 1; lctx.filter = "none";
+  lctx.fillStyle = "#000"; lctx.fillRect(0, 0, 540, 960);
+  const [sc, dx, dy] = transformacaoFx(at, t);
+  lctx.save();
+  if (Math.abs(sc - 1) > 1e-4 || dx || dy) { lctx.translate(270 + dx * K, 480 + dy * K); lctx.scale(sc, sc); lctx.translate(-270, -480); }
   const sy0 = Math.max(0, y), sy1 = Math.min(P.H, y + h);
   const dy0 = (sy0 - y) * s, dy1 = (sy1 - y) * s;
   if (dy0 > 0.5 || dy1 < 959.5) {
-    pctx.filter = "blur(18px) brightness(0.55)";
-    pctx.drawImage(v, x * kv, sy0 * kv, w * kv, (sy1 - sy0) * kv, -40, -40, 620, 1040);
-    pctx.filter = "none";
+    lctx.filter = "blur(18px) brightness(0.55)";
+    lctx.drawImage(v, x * kv, sy0 * kv, w * kv, (sy1 - sy0) * kv, -40, -40, 620, 1040);
   }
-  pctx.drawImage(v, x * kv, sy0 * kv, w * kv, (sy1 - sy0) * kv, 0, dy0, 540, dy1 - dy0);
+  const borrao = Math.max(0, ...at.filter(([f]) => f.tipo === "desfoque").map(([f, e]) => 14 * (f.forca ?? 0.6) * e));
+  lctx.filter = borrao > 0.3 ? `blur(${borrao * K}px)` : "none";
+  lctx.drawImage(v, x * kv, sy0 * kv, w * kv, (sy1 - sy0) * kv, 0, dy0, 540, dy1 - dy0);
+  lctx.restore(); lctx.filter = "none";
+  desenhaFacecam(lctx, t);
+  // 2) quadro todo: filtro de cor, glitch, vinheta, grão
+  const nomeF = filtroNoTempo(at, vis.filtro);
+  pctx.setTransform(1, 0, 0, 1, 0, 0); pctx.globalAlpha = 1;
+  pctx.filter = filtroCSS(nomeF) || "none"; pctx.drawImage(camada, 0, 0); pctx.filter = "none";
+  tinta(pctx, nomeF, 0, 0, 540, 960);
+  if (at.some(([f]) => f.tipo === "glitch")) glitchPrevia(at, t);
+  acabamentoPrevia(t, vis);
   const cb = camBox(t);
-  if (cb && S.ed.facecam.visivel !== false) {
-    const [sx, sy, sw, sh] = cb.src;
-    pctx.save(); pctx.beginPath(); pctx.roundRect(cb.x * K, cb.y * K, cb.w * K, cb.h * K, cb.r * K); pctx.clip();
-    pctx.drawImage(v, sx * v.videoWidth, sy * v.videoHeight, sw * v.videoWidth, sh * v.videoHeight, cb.x * K, cb.y * K, cb.w * K, cb.h * K);
-    pctx.restore();
-    if ((arrasto && arrasto.tipo.startsWith("cam")) || hover === "cam" || hover === "camTam") {
-      pctx.strokeStyle = "rgba(255,255,255,.7)"; pctx.setLineDash([6, 4]); pctx.lineWidth = 1.5;
-      pctx.strokeRect(cb.x * K, cb.y * K, cb.w * K, cb.h * K); pctx.setLineDash([]);
-      pctx.fillStyle = "#fff"; pctx.fillRect(cb.x * K - 5, (cb.y + cb.h) * K - 5, 10, 10);
-    }
+  if (cb && S.ed.facecam.visivel !== false && ((arrasto && arrasto.tipo.startsWith("cam")) || hover === "cam" || hover === "camTam")) {
+    pctx.strokeStyle = "rgba(255,255,255,.8)"; pctx.setLineDash([6, 4]); pctx.lineWidth = 1.5;
+    pctx.strokeRect(cb.x * K, cb.y * K, cb.w * K, cb.h * K); pctx.setLineDash([]);
+    pctx.fillStyle = "#fff"; pctx.beginPath(); pctx.arc(cb.x * K, (cb.y + cb.h) * K, 5, 0, 7); pctx.fill();
   }
+  // 3) mídia, flash/preto, barra e legenda por cima
   desenhaMidia(t);
+  sobreposicaoPrevia(at);
+  if (vis.barra) barraPrevia(t, vis);
   const gi = grupoEm(t);
   if (gi >= 0) {
     const g = S.ed.legenda.grupos[gi], { pal, fs } = medidas(g);
@@ -471,10 +761,10 @@ function desenhaPrevia() {
     pctx.restore();
   }
   if (arrasto && arrasto.tipo === "leg") {
-    pctx.strokeStyle = "rgba(255,176,32,.8)"; pctx.setLineDash([6, 4]);
+    pctx.strokeStyle = "rgba(255,176,32,.9)"; pctx.setLineDash([6, 4]);
     pctx.beginPath(); pctx.moveTo(0, S.ed.legenda.y * K); pctx.lineTo(540, S.ed.legenda.y * K); pctx.stroke(); pctx.setLineDash([]);
   }
-  if (removido(t)) { pctx.fillStyle = "rgba(255,77,61,.35)"; pctx.fillRect(0, 0, 540, 960); pctx.fillStyle = "#fff"; pctx.font = "600 22px system-ui"; pctx.textAlign = "center"; pctx.fillText("✂ trecho removido", 270, 480); pctx.textAlign = "left"; }
+  if (removido(t)) { pctx.fillStyle = "rgba(10,11,15,.72)"; pctx.fillRect(0, 0, 540, 960); pctx.fillStyle = "#ff8a80"; pctx.font = "600 20px Inter, system-ui"; pctx.textAlign = "center"; pctx.fillText("✂  trecho removido", 270, 480); pctx.textAlign = "left"; }
 }
 function tamanhoCanvas(c) {
   const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1;
@@ -503,9 +793,9 @@ function desenhaOverlay() {
     octx.strokeRect(a.ox + wx * a.w, a.oy + wy * a.h, ww * a.w, wh * a.h); octx.setLineDash([]); }
 }
 // linha do tempo
-const TL = { leg: [22, 46], cam: [52, 72], face: [78, 94], mid: [100, 146] };
-function tx(t, W) { return 8 + (t / S.plano.dur) * (W - 16); }
-function txInv(px, W) { return clamp((px - 8) / (W - 16) * S.plano.dur, 0, S.plano.dur); }
+const TL = { leg: [20, 42], fx: [58, 74], cam: [90, 104], face: [120, 132], mid: [148, 184] };
+function tx(t, W) { return 10 + (t / S.plano.dur) * (W - 20); }
+function txInv(px, W) { return clamp((px - 10) / (W - 20) * S.plano.dur, 0, S.plano.dur); }
 function faixasMidia() {      // distribui os itens de mídia em até 3 faixas sem sobrepor
   const lanes = [[], [], []], out = new Map();
   (S.ed.midias || []).forEach((m, i) => {
@@ -515,61 +805,73 @@ function faixasMidia() {      // distribui os itens de mídia em até 3 faixas s
   });
   return out;
 }
+function rotuloTL(txt, y) { tctx.fillStyle = "#5d6473"; tctx.font = "600 9px Inter, system-ui"; tctx.fillText(txt, 12, y - 4); }
 function desenhaTL() {
   if (!S) return;
   const [W, H, d] = tamanhoCanvas(tl); tctx.setTransform(d, 0, 0, d, 0, 0); tctx.clearRect(0, 0, W, H);
-  tctx.font = "11px system-ui";
+  tctx.font = "500 10px Inter, system-ui";
   const passo = S.plano.dur > 40 ? 5 : 2;
   for (let t = 0; t <= S.plano.dur; t += 1) {
-    const x = tx(t, W); tctx.fillStyle = t % passo === 0 ? "#3a4050" : "#252a35"; tctx.fillRect(x, 0, 1, t % passo === 0 ? 10 : 5);
-    if (t % passo === 0) { tctx.fillStyle = "#8b93a4"; tctx.fillText(`${t}s`, x + 3, 11); }
+    const x = tx(t, W); tctx.fillStyle = t % passo === 0 ? "#3a4050" : "#22262f"; tctx.fillRect(x, 0, 1, t % passo === 0 ? 8 : 4);
+    if (t % passo === 0) { tctx.fillStyle = "#6b7385"; tctx.fillText(`${t}s`, x + 3, 9); }
   }
-  tctx.fillStyle = "rgba(255,255,255,.04)";
-  for (const [a, b] of [TL.leg, TL.cam, TL.face, TL.mid]) tctx.fillRect(8, a, W - 16, b - a);
-  tctx.fillStyle = "#8b93a4"; tctx.font = "9.5px system-ui";
-  tctx.fillText("LEGENDA", 10, TL.leg[0] - 1); tctx.fillText("CÂMERA", 10, TL.cam[0] - 1); tctx.fillText("FACECAM", 10, TL.face[0] - 1); tctx.fillText("MÍDIA", 10, TL.mid[0] - 1);
+  for (const [a, b] of [TL.leg, TL.fx, TL.cam, TL.face, TL.mid]) { tctx.fillStyle = "rgba(255,255,255,.028)"; tctx.beginPath(); tctx.roundRect(10, a, W - 20, b - a, 5); tctx.fill(); }
+  rotuloTL("LEGENDA", TL.leg[0]); rotuloTL("EFEITOS", TL.fx[0]); rotuloTL("CÂMERA", TL.cam[0]); rotuloTL("FACECAM", TL.face[0]); rotuloTL("MÍDIA", TL.mid[0]);
   const n = Math.max(2, Math.floor(W / 3));
   for (let i = 0; i < n; i++) {
     const t = i / (n - 1) * S.plano.dur, z = moldura(t)[4];
-    if (Math.abs(z - 1) > 0.02) { tctx.fillStyle = z < 1 ? "rgba(76,141,255,.35)" : "rgba(255,176,32,.25)"; tctx.fillRect(tx(t, W), TL.cam[1] - 5, Math.ceil(W / n) + 1, 5); }
+    if (Math.abs(z - 1) > 0.02) { tctx.fillStyle = z < 1 ? "rgba(76,141,255,.35)" : "rgba(255,176,32,.28)"; tctx.fillRect(tx(t, W), TL.cam[1] - 4, Math.ceil(W / n) + 1, 4); }
   }
-  tctx.font = "11px system-ui";
+  tctx.font = "500 10.5px Inter, system-ui";
   S.ed.legenda.grupos.forEach((g, i) => {
-    const x0 = tx(g.ini, W), x1 = tx(g.fim, W);
-    tctx.fillStyle = sel.tipo === "leg" && sel.i === i ? "#ff4d3d" : "#39404f";
-    tctx.beginPath(); tctx.roundRect(x0, TL.leg[0] + 2, Math.max(2, x1 - x0), TL.leg[1] - TL.leg[0] - 4, 4); tctx.fill();
-    if (x1 - x0 > 24) { tctx.save(); tctx.beginPath(); tctx.rect(x0, TL.leg[0], x1 - x0 - 2, 30); tctx.clip();
-      tctx.fillStyle = "#e6e8ee"; tctx.fillText(g.texto, x0 + 4, TL.leg[0] + 16); tctx.restore(); }
+    const x0 = tx(g.ini, W), x1 = tx(g.fim, W), s = sel.tipo === "leg" && sel.i === i;
+    tctx.fillStyle = s ? "#ff4d3d" : "#2c323f";
+    tctx.beginPath(); tctx.roundRect(x0, TL.leg[0] + 2, Math.max(2, x1 - x0 - 1), TL.leg[1] - TL.leg[0] - 4, 4); tctx.fill();
+    if (x1 - x0 > 24) { tctx.save(); tctx.beginPath(); tctx.rect(x0, TL.leg[0], x1 - x0 - 3, 30); tctx.clip();
+      tctx.fillStyle = s ? "#fff" : "#c9cdd6"; tctx.fillText(g.texto, x0 + 5, TL.leg[0] + 15); tctx.restore(); }
   });
+  (S.ed.fx || []).forEach((f, i) => {
+    const x0 = tx(f.ini, W), x1 = tx(f.fim, W), def = FX[f.tipo] || { cor: "#888", nome: f.tipo }, s = sel.tipo === "fx" && sel.i === i;
+    tctx.globalAlpha = s ? 1 : 0.82; tctx.fillStyle = def.cor;
+    tctx.beginPath(); tctx.roundRect(x0, TL.fx[0] + 1, Math.max(3, x1 - x0 - 1), TL.fx[1] - TL.fx[0] - 2, 4); tctx.fill(); tctx.globalAlpha = 1;
+    if (s) { tctx.strokeStyle = "#fff"; tctx.lineWidth = 1.5; tctx.stroke(); }
+    if (x1 - x0 > 34) { tctx.save(); tctx.beginPath(); tctx.rect(x0, TL.fx[0], x1 - x0 - 3, 20); tctx.clip(); tctx.fillStyle = "#111318"; tctx.font = "600 9.5px Inter, system-ui";
+      tctx.fillText(def.nome, x0 + 5, TL.fx[1] - 5); tctx.restore(); }
+  });
+  if (!(S.ed.fx || []).length) { tctx.fillStyle = "#4a505d"; tctx.font = "10.5px Inter, system-ui"; tctx.fillText("nenhum efeito (aba Efeitos)", 72, TL.fx[1] - 4); }
   if (S.ed.camera.modo === "manual") S.ed.camera.chaves.forEach((k, i) => {
-    const x = tx(k.t, W), y = (TL.cam[0] + TL.cam[1]) / 2 - 2;
+    const x = tx(k.t, W), y = (TL.cam[0] + TL.cam[1]) / 2 - 1;
     tctx.fillStyle = sel.tipo === "key" && sel.i === i ? "#fff" : "#ffb020";
-    tctx.beginPath(); tctx.moveTo(x, y - 6); tctx.lineTo(x + 6, y); tctx.lineTo(x, y + 6); tctx.lineTo(x - 6, y); tctx.closePath(); tctx.fill();
-  }); else { tctx.fillStyle = "#8b93a4"; tctx.fillText("automática (segue os personagens)", 70, (TL.cam[0] + TL.cam[1]) / 2 + 2); }
+    tctx.beginPath(); tctx.moveTo(x, y - 5.5); tctx.lineTo(x + 5.5, y); tctx.lineTo(x, y + 5.5); tctx.lineTo(x - 5.5, y); tctx.closePath(); tctx.fill();
+  }); else { tctx.fillStyle = "#4a505d"; tctx.font = "10.5px Inter, system-ui"; tctx.fillText("automática (segue os personagens)", 72, TL.cam[1] - 4); }
   const fks = S.ed.facecam.chaves || [];
-  if (fks.length) fks.forEach((k, i) => { tctx.fillStyle = sel.tipo === "fkey" && sel.i === i ? "#fff" : "#4c8dff"; tctx.beginPath(); tctx.arc(tx(k.t, W), (TL.face[0] + TL.face[1]) / 2, 5, 0, 7); tctx.fill(); });
-  else { tctx.fillStyle = "#8b93a4"; tctx.fillText(temCam() ? "parada (sem animação)" : "sem facecam", 70, (TL.face[0] + TL.face[1]) / 2 + 4); }
+  if (fks.length) fks.forEach((k, i) => { tctx.fillStyle = sel.tipo === "fkey" && sel.i === i ? "#fff" : "#4c8dff"; tctx.beginPath(); tctx.arc(tx(k.t, W), (TL.face[0] + TL.face[1]) / 2, 4.5, 0, 7); tctx.fill(); });
+  else { tctx.fillStyle = "#4a505d"; tctx.font = "10.5px Inter, system-ui"; tctx.fillText(temCam() ? "parada (sem animação)" : "sem facecam", 72, TL.face[1] - 2); }
   const fx = faixasMidia(), lh = (TL.mid[1] - TL.mid[0]) / 3;
   (S.ed.midias || []).forEach((m, i) => {
     const { a, b, l } = fx.get(i), x0 = tx(a, W), x1 = tx(Math.min(b, S.plano.dur), W), y0 = TL.mid[0] + l * lh + 1;
     tctx.fillStyle = sel.tipo === "midia" && sel.i === i ? "#ff4d3d" : m.tipo === "audio" ? "#1f7a4d" : m.tipo === "texto" ? "#6b4fc8" : "#2f5fb3";
     tctx.beginPath(); tctx.roundRect(x0, y0, Math.max(3, x1 - x0), lh - 2, 3); tctx.fill();
-    if (x1 - x0 > 30) { tctx.save(); tctx.beginPath(); tctx.rect(x0, y0, x1 - x0 - 2, lh); tctx.clip(); tctx.fillStyle = "#fff"; tctx.font = "10.5px system-ui";
-      tctx.fillText((m.tipo === "audio" ? "♪ " : m.tipo === "texto" ? "T " : "▣ ") + (m.tipo === "texto" ? m.texto : m.nome || m.arquivo), x0 + 4, y0 + lh - 5); tctx.restore(); }
+    if (x1 - x0 > 30) { tctx.save(); tctx.beginPath(); tctx.rect(x0, y0, x1 - x0 - 2, lh); tctx.clip(); tctx.fillStyle = "#fff"; tctx.font = "500 9.5px Inter, system-ui";
+      tctx.fillText((m.tipo === "audio" ? "♪ " : m.tipo === "texto" ? "T  " : "▣ ") + (m.tipo === "texto" ? m.texto : m.nome || m.arquivo), x0 + 4, y0 + lh - 3.5); tctx.restore(); }
   });
-  for (const [a, b] of remover()) { const x0 = tx(a, W), x1 = tx(b, W); tctx.fillStyle = "rgba(255,77,61,.28)"; tctx.fillRect(x0, 14, x1 - x0, H - 14);
-    tctx.strokeStyle = "rgba(255,77,61,.9)"; tctx.lineWidth = 1; tctx.strokeRect(x0 + .5, 14.5, x1 - x0 - 1, H - 15); }
+  for (const [a, b] of remover()) { const x0 = tx(a, W), x1 = tx(b, W);
+    tctx.save(); tctx.beginPath(); tctx.rect(x0, 12, x1 - x0, H - 12); tctx.clip(); tctx.fillStyle = "rgba(10,11,15,.6)"; tctx.fillRect(x0, 12, x1 - x0, H - 12);
+    tctx.strokeStyle = "rgba(255,77,61,.45)"; tctx.lineWidth = 1; for (let k = x0 - H; k < x1; k += 7) { tctx.beginPath(); tctx.moveTo(k, H); tctx.lineTo(k + H, 12); tctx.stroke(); } tctx.restore();
+    tctx.strokeStyle = "rgba(255,77,61,.85)"; tctx.strokeRect(x0 + .5, 12.5, x1 - x0 - 1, H - 13); }
   if (marca.ini !== null || marca.fim !== null) {
-    const a = marca.ini ?? 0, b = marca.fim ?? S.plano.dur; tctx.fillStyle = "rgba(255,176,32,.16)"; tctx.fillRect(tx(a, W), 14, tx(b, W) - tx(a, W), H - 14);
-    tctx.fillStyle = "#ffb020"; if (marca.ini !== null) tctx.fillRect(tx(marca.ini, W) - 1, 14, 2, H - 14); if (marca.fim !== null) tctx.fillRect(tx(marca.fim, W) - 1, 14, 2, H - 14);
+    const a = marca.ini ?? 0, b = marca.fim ?? S.plano.dur; tctx.fillStyle = "rgba(255,176,32,.12)"; tctx.fillRect(tx(a, W), 12, tx(b, W) - tx(a, W), H - 12);
+    tctx.fillStyle = "#ffb020"; if (marca.ini !== null) tctx.fillRect(tx(marca.ini, W) - 1, 12, 2, H - 12); if (marca.fim !== null) tctx.fillRect(tx(marca.fim, W) - 1, 12, 2, H - 12);
   }
-  const xp = tx(v.currentTime, W); tctx.fillStyle = "#ff4d3d"; tctx.fillRect(xp - 1, 0, 2, H);
+  const xp = tx(v.currentTime, W); tctx.fillStyle = "#fff"; tctx.fillRect(xp - 0.75, 6, 1.5, H - 6);
+  tctx.fillStyle = "#ff4d3d"; tctx.beginPath(); tctx.moveTo(xp - 6, 0); tctx.lineTo(xp + 6, 0); tctx.lineTo(xp + 6, 6); tctx.lineTo(xp, 11); tctx.lineTo(xp - 6, 6); tctx.closePath(); tctx.fill();
 }
 function loop() {
   if (S) {
     if (!v.paused) { const r = removido(v.currentTime); if (r) v.currentTime = Math.min(r[1] + 0.01, S.plano.dur); }
-    desenhaPrevia(); desenhaOverlay(); desenhaTL(); sincronizaAudios();
-    $("#tempo").textContent = `${fmt(v.currentTime)} / ${fmt(S.plano.dur)} s` + (remover().length ? ` · final ${fmt(durFinal())} s` : "");
+    desenhaPrevia(); desenhaOverlay(); desenhaTL(); sincronizaAudios(); desenhaMiniaturas();
+    const tt = `${fmt(v.currentTime)} <small>/ ${fmt(S.plano.dur)} s</small>` + (remover().length ? ` <small>· final ${fmt(durFinal())} s</small>` : "");
+    if ($("#tempo").innerHTML !== tt) $("#tempo").innerHTML = tt;
     marcarAgora();
   }
   requestAnimationFrame(loop);
@@ -608,10 +910,10 @@ function atualizaPainel() {
   const lk = $("#listaKeys"); lk.innerHTML = "";
   if (c.modo === "manual") c.chaves.forEach((k, i) => {
     const d = document.createElement("div"); d.className = "item" + (sel.tipo === "key" && sel.i === i ? " sel" : "");
-    d.innerHTML = `<div class="topo" style="margin:0"><b style="color:var(--acento2)">◆</b>${inputNum(k.t, 0.1, "tempo (s)", 0)} s
+    d.innerHTML = `<div class="topo" style="margin:0"><b style="color:var(--amarelo)">◆</b>${inputNum(k.t, 0.1, "tempo (s)", 0)} s
       <span style="color:var(--fraco)">x</span>${inputNum(k.cx, 0.01, "centro (0 a 1)", 0, 1)}
       <span style="color:var(--fraco)">z</span>${inputNum(k.z, 0.01, "zoom", 0.5, 2)}
-      <button class="x mini" title="Apagar">✕</button></div>`;
+      <button class="x icbt" title="Apagar"><svg class="ic"><use href="#i-x"/></svg></button></div>`;
     const [it, ic, iz] = d.querySelectorAll("input");
     it.onchange = () => { k.t = clamp(+it.value, 0, S.plano.dur); c.chaves.sort((a, b) => a.t - b.t); mudou(); };
     ic.onchange = () => { k.cx = clamp(+ic.value, 0, 1); mudou(); };
@@ -637,7 +939,7 @@ function atualizaPainel() {
   (S.ed.facecam.chaves || []).forEach((k, i) => {
     const d = document.createElement("div"); d.className = "item" + (sel.tipo === "fkey" && sel.i === i ? " sel" : "");
     d.innerHTML = `<div class="topo" style="margin:0"><b style="color:var(--azul)">●</b>${inputNum(k.t, 0.1, "tempo (s)", 0)} s
-      <span style="color:var(--fraco)">larg</span>${inputNum(k.larg, 2, "largura (px)", 40, 1080)}<button class="x mini" title="Apagar">✕</button></div>`;
+      <span style="color:var(--fraco)">larg</span>${inputNum(k.larg, 2, "largura (px)", 40, 1080)}<button class="x icbt" title="Apagar"><svg class="ic"><use href="#i-x"/></svg></button></div>`;
     const [it, il] = d.querySelectorAll("input");
     it.onchange = () => { k.t = clamp(+it.value, 0, S.plano.dur); S.ed.facecam.chaves.sort((a, b) => a.t - b.t); mudou(); };
     il.onchange = () => { k.larg = clamp(+il.value, 40, 1080); mudou(); };
@@ -645,6 +947,9 @@ function atualizaPainel() {
     d.onclick = (e) => { if (["INPUT", "BUTTON"].includes(e.target.tagName)) return; sel = { tipo: "fkey", i }; v.currentTime = k.t; atualizaPainel(); };
     lf.appendChild(d);
   });
+  atualizaEstiloCam(); atualizaEfeitos();
+  $("#seloCam").textContent = c.modo === "manual" ? "câmera manual" : "câmera automática";
+  $("#seloCam").className = "selo" + (c.modo === "manual" ? " rodando" : "");
   desenhaListaMidia();
   // cortar
   $("#marcaTxt").textContent = marca.ini === null && marca.fim === null ? "Marque o início e o fim do trecho que quer tirar." :
@@ -655,7 +960,7 @@ function atualizaPainel() {
   remover().forEach((r, i) => {
     const d = document.createElement("div"); d.className = "item";
     d.innerHTML = `<div class="topo" style="margin:0"><b style="color:var(--acento)">✂</b>${inputNum(r[0], 0.05, "início", 0)} – ${inputNum(r[1], 0.05, "fim", 0)} s
-      <span class="tag">${fmt(r[1] - r[0])} s</span><button class="mini ir">▶</button><button class="x mini" title="Devolver este trecho">↺ Devolver</button></div>`;
+      <span class="tag">${fmt(r[1] - r[0])} s</span><button class="icbt ir"><svg class="ic"><use href="#i-go"/></svg></button><button class="x icbt" title="Devolver este trecho"><svg class="ic"><use href="#i-x"/></svg></button></div>`;
     const [ia, ib] = d.querySelectorAll("input");
     ia.onchange = () => { r[0] = clamp(+ia.value, 0, r[1] - 0.05); juntarRemovidos(); mudou(); };
     ib.onchange = () => { r[1] = clamp(+ib.value, r[0] + 0.05, S.plano.dur); juntarRemovidos(); mudou(); };
@@ -672,10 +977,10 @@ function desenhaListaLeg() {
   el.innerHTML = "";
   L.grupos.forEach((g, i) => {
     const d = document.createElement("div"); d.className = "item" + (sel.tipo === "leg" && sel.i === i ? " sel" : ""); d.dataset.i = i;
-    d.innerHTML = `<div class="topo"><button class="mini ir" title="Ir pra este bloco">▶</button>
+    d.innerHTML = `<div class="topo"><button class="icbt ir" title="Ir pra este bloco"><svg class="ic"><use href="#i-go"/></svg></button>
       <input type="number" step="0.05" min="0" value="${g.ini.toFixed(2)}" data-id="ini${i}" title="começa (s)"> –
       <input type="number" step="0.05" min="0" value="${g.fim.toFixed(2)}" data-id="fim${i}" title="termina (s)">
-      <button class="x mini" title="Apagar bloco">✕</button></div>
+      <button class="x icbt" title="Apagar bloco"><svg class="ic"><use href="#i-x"/></svg></button></div>
       <input type="text" class="leg" value="" data-id="txt${i}"><div class="chips"></div>`;
     const [ii, ifm, itx] = d.querySelectorAll("input");
     itx.value = g.texto;
@@ -700,24 +1005,24 @@ function desenhaListaMidia() {
   const ms = S.ed.midias || [], assin = JSON.stringify([ms, sel]);
   if (assin === midiaAssinatura) return; midiaAssinatura = assin;
   const el = $("#listaMidia"), foco = document.activeElement, focoId = foco && foco.dataset ? foco.dataset.id : null;
-  el.innerHTML = ms.length ? "" : `<div class="dica" style="padding:0">Nenhuma mídia ainda.</div>`;
+  el.innerHTML = ms.length ? "" : `<div class="vazio">Nenhuma mídia ainda.</div>`;
   ms.forEach((m, i) => {
     const d = document.createElement("div"); d.className = "item" + (sel.tipo === "midia" && sel.i === i ? " sel" : "");
     const icone = m.tipo === "audio" ? "♪" : m.tipo === "texto" ? "T" : "▣";
     let corpo = "";
     if (m.tipo === "audio") {
-      corpo = `<div class="topo"><b>${icone}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.nome || m.arquivo)}</span><button class="mini ir">▶</button><button class="x mini">✕</button></div>
+      corpo = `<div class="topo"><b>${icone}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.nome || m.arquivo)}</span><button class="icbt ir"><svg class="ic"><use href="#i-go"/></svg></button><button class="x icbt"><svg class="ic"><use href="#i-x"/></svg></button></div>
         <div class="linha" style="margin-bottom:6px"><span class="tag">começa</span>${inputNum(m.t, 0.1, "começa em (s)", 0)}
         <span class="tag">dura</span>${inputNum(m.dur ?? "", 0.1, "duração (vazio = até acabar)", 0)}<span class="tag">pula</span>${inputNum(m.ini_arq || 0, 0.1, "começar do segundo X do áudio", 0)}</div>
         <div class="campo" style="margin:0"><label><span>Volume</span><span>${(m.volume_db ?? -6).toFixed(0)} dB</span></label><input type="range" min="-30" max="6" step="1" value="${m.volume_db ?? -6}" data-id="vol${m.id}"></div>`;
     } else {
-      corpo = `<div class="topo"><b>${icone}</b>${inputNum(m.ini.toFixed(2), 0.05, "aparece (s)", 0)} – ${inputNum(m.fim.toFixed(2), 0.05, "some (s)", 0)}<button class="mini ir">▶</button><button class="x mini">✕</button></div>` +
+      corpo = `<div class="topo"><b>${icone}</b>${inputNum(m.ini.toFixed(2), 0.05, "aparece (s)", 0)} – ${inputNum(m.fim.toFixed(2), 0.05, "some (s)", 0)}<button class="icbt ir"><svg class="ic"><use href="#i-go"/></svg></button><button class="x icbt"><svg class="ic"><use href="#i-x"/></svg></button></div>` +
         (m.tipo === "texto" ? `<textarea data-id="txt${m.id}" rows="2"></textarea>
           <div class="linha" style="margin:6px 0"><span class="tag">cor</span><input type="color" value="${m.cor || "#ffffff"}" data-id="cor${m.id}">
-          <label class="linha mini" style="color:var(--fraco)"><input type="checkbox" ${m.fundo ? "checked" : ""} data-id="fundo${m.id}"> fundo</label>
+          <label class="linha" style="color:var(--fraco)"><input type="checkbox" ${m.fundo ? "checked" : ""} data-id="fundo${m.id}"> fundo</label>
           <input type="color" value="${m.cor_fundo || "#000000"}" data-id="corf${m.id}" ${m.fundo ? "" : "disabled"}></div>
           <div class="campo" style="margin:0"><label><span>Tamanho</span><span>${m.tam} px</span></label><input type="range" min="30" max="220" step="2" value="${m.tam}" data-id="tam${m.id}"></div>`
-        : `<div class="dica" style="padding:0 0 4px">${esc(m.nome || m.arquivo)}</div><div class="campo" style="margin:0 0 6px"><label><span>Largura</span><span>${Math.round(m.larg)} px</span></label><input type="range" min="40" max="1080" step="2" value="${m.larg}" data-id="larg${m.id}"></div>`) +
+        : `<div class="nota-p" style="margin:0 0 6px">${esc(m.nome || m.arquivo)}</div><div class="campo" style="margin:0 0 6px"><label><span>Largura</span><span>${Math.round(m.larg)} px</span></label><input type="range" min="40" max="1080" step="2" value="${m.larg}" data-id="larg${m.id}"></div>`) +
         `<div class="campo" style="margin:6px 0 0"><label><span>Opacidade</span><span>${Math.round((m.opacidade ?? 1) * 100)}%</span></label><input type="range" min="0.1" max="1" step="0.05" value="${m.opacidade ?? 1}" data-id="op${m.id}"></div>`;
     }
     d.innerHTML = corpo;
@@ -879,6 +1184,93 @@ $("#btFaceGrande").onclick = () => {
   ks.sort((a, b) => a.t - b.t); confirma(antes); estado(`facecam grande de ${fmt(t)} a ${fmt(t + d)} s`);
 };
 
+
+// ---------- facecam: estilo ----------
+(function montaEstiloCam() {
+  $("#camFiltro").innerHTML = Object.entries(FILTROS).map(([k, f]) => `<option value="${k}">${f.nome}</option>`).join("");
+  $("#presetsCam").innerHTML = PRESETS_CAM.map((p, i) => `<button class="preset" data-i="${i}"><span class="amostra" style="${p.css}"></span>${p.nome}</button>`).join("");
+  document.querySelectorAll("#presetsCam .preset").forEach(b => b.onclick = () => {
+    if (!temCam()) return; const p = PRESETS_CAM[+b.dataset.i]; Object.assign(S.ed.facecam, p.est); mudou(); estado(`estilo da facecam: ${p.nome}`, "ok"); });
+})();
+const fcSet = (k, val) => { S.ed.facecam[k] = val; mudou(); };
+$("#formaRet").onclick = () => fcSet("forma", "retangulo");
+$("#formaCirc").onclick = () => fcSet("forma", "circulo");
+$("#camBorda").oninput = () => fcSet("borda", +$("#camBorda").value);
+$("#camCorBorda").oninput = () => fcSet("cor_borda", $("#camCorBorda").value.toUpperCase());
+$("#camZoom").oninput = () => fcSet("zoom", +$("#camZoom").value);
+$("#camFiltro").onchange = () => fcSet("filtro", $("#camFiltro").value);
+$("#camSombra").onchange = () => fcSet("sombra", $("#camSombra").checked);
+$("#camBrilho").onchange = () => fcSet("brilho", $("#camBrilho").checked);
+$("#camEspelhar").onchange = () => fcSet("espelhar", $("#camEspelhar").checked);
+function atualizaEstiloCam() {
+  const fc = S.ed.facecam, tc = temCam();
+  $("#formaRet").classList.toggle("ativo", fc.forma !== "circulo"); $("#formaCirc").classList.toggle("ativo", fc.forma === "circulo");
+  $("#camBorda").value = fc.borda || 0; $("#camBordaVal").textContent = (fc.borda || 0) + " px";
+  $("#camCorBorda").value = fc.cor_borda || "#FFFFFF";
+  $("#camZoom").value = fc.zoom || 1; $("#camZoomVal").textContent = (+(fc.zoom || 1)).toFixed(2).replace(".", ",") + "×";
+  $("#camFiltro").value = fc.filtro || "nenhum";
+  $("#camSombra").checked = !!fc.sombra; $("#camBrilho").checked = !!fc.brilho; $("#camEspelhar").checked = !!fc.espelhar;
+  ["#formaRet", "#formaCirc", "#camBorda", "#camCorBorda", "#camZoom", "#camFiltro", "#camSombra", "#camBrilho", "#camEspelhar"].forEach(s => $(s).disabled = !tc);
+  document.querySelectorAll("#presetsCam .preset").forEach(b => b.disabled = !tc);
+  $("#camRaio").disabled = !tc || fc.forma === "circulo";
+}
+
+// ---------- efeitos: visual do corte e efeitos no tempo ----------
+(function montaEfeitos() {
+  $("#gradeFiltros").innerHTML = Object.entries(FILTROS).map(([k, f]) => `<button class="filtro" data-f="${k}"><canvas></canvas>${f.nome}</button>`).join("");
+  document.querySelectorAll("#gradeFiltros .filtro").forEach(b => b.onclick = () => { S.ed.visual.filtro = b.dataset.f; mudou(); });
+  $("#fxGrade").innerHTML = Object.entries(FX).map(([k, f]) => `<button class="fxbt" data-fx="${k}" title="Adicionar ${f.nome} no tempo atual">
+    <span class="bolinha" style="background:${f.cor}22;color:${f.cor}">${icone(f.ic)}</span>${f.nome}</button>`).join("");
+  document.querySelectorAll("#fxGrade .fxbt").forEach(b => b.onclick = () => {
+    const tp = b.dataset.fx, def = FX[tp], t = tp === "saida_preto" ? Math.max(0, v.currentTime - def.dur) : v.currentTime, antes = antesDe();
+    const f = { id: uid(), tipo: tp, ini: +t.toFixed(2), fim: +Math.min(S.plano.dur, t + def.dur).toFixed(2), forca: def.forca };
+    if (def.filtro) f.filtro = def.filtro;
+    S.ed.fx.push(f); S.ed.fx.sort((a, b) => a.ini - b.ini); sel = { tipo: "fx", i: S.ed.fx.indexOf(f) }; fxAssinatura = "";
+    confirma(antes); estado(`${def.nome} em ${fmt(f.ini)} s`, "ok");
+  });
+})();
+const visSet = (k, val) => { S.ed.visual[k] = val; mudou(); };
+$("#visVinheta").oninput = () => visSet("vinheta", +$("#visVinheta").value);
+$("#visGrao").oninput = () => visSet("grao", +$("#visGrao").value);
+$("#visBarra").onchange = () => visSet("barra", $("#visBarra").checked);
+$("#visCorBarra").oninput = () => visSet("cor_barra", $("#visCorBarra").value.toUpperCase());
+$("#barraTopo").onclick = () => visSet("pos_barra", "topo");
+$("#barraBase").onclick = () => visSet("pos_barra", "base");
+function atualizaEfeitos() {
+  const vis = S.ed.visual;
+  document.querySelectorAll("#gradeFiltros .filtro").forEach(b => b.classList.toggle("ativo", b.dataset.f === (vis.filtro || "nenhum")));
+  $("#visVinheta").value = vis.vinheta; $("#vinVal").textContent = Math.round(vis.vinheta * 100) + "%";
+  $("#visGrao").value = vis.grao; $("#graoVal").textContent = Math.round(vis.grao * 100) + "%";
+  $("#visBarra").checked = !!vis.barra; $("#visCorBarra").value = vis.cor_barra || "#FF4D3D";
+  $("#barraTopo").classList.toggle("ativo", vis.pos_barra === "topo"); $("#barraBase").classList.toggle("ativo", vis.pos_barra !== "topo");
+  desenhaListaFx(); desenhaMiniaturas(true);
+}
+let fxAssinatura = "";
+function desenhaListaFx() {
+  const fs = S.ed.fx, assin = JSON.stringify([fs, sel]);
+  if (assin === fxAssinatura) return; fxAssinatura = assin;
+  const el = $("#listaFx");
+  el.innerHTML = fs.length ? "" : `<div class="vazio">Nenhum efeito ainda. Vá até o momento certo e clique num efeito acima.</div>`;
+  fs.forEach((f, i) => {
+    const def = FX[f.tipo] || { nome: f.tipo, cor: "#888" }, d = document.createElement("div");
+    d.className = "item" + (sel.tipo === "fx" && sel.i === i ? " sel" : "");
+    d.innerHTML = `<div class="topo"><span class="fxtag"><i style="background:${def.cor}"></i>${def.nome}</span><span class="espaco"></span>
+        <button class="icbt ir" title="Ir pra este efeito">${icone("go")}</button><button class="x icbt" title="Apagar">${icone("x")}</button></div>
+      <div class="linha" style="margin-bottom:8px"><span class="tag">de</span>${inputNum(f.ini.toFixed(2), 0.05, "começa (s)", 0)}<span class="tag">até</span>${inputNum(f.fim.toFixed(2), 0.05, "termina (s)", 0)}
+        ${f.tipo === "filtro" ? `<select class="selF">${Object.entries(FILTROS).filter(([k]) => k !== "nenhum").map(([k, x]) => `<option value="${k}" ${k === f.filtro ? "selected" : ""}>${x.nome}</option>`).join("")}</select>` : ""}</div>
+      ${f.tipo === "filtro" ? "" : `<div class="campo" style="margin:0"><label><span>Força</span><b>${Math.round((f.forca ?? 0.6) * 100)}%</b></label><input type="range" min="0.1" max="1" step="0.05" value="${f.forca ?? 0.6}"></div>`}`;
+    const [ia, ib] = d.querySelectorAll("input[type=number]");
+    ia.onchange = () => { f.ini = clamp(+ia.value, 0, f.fim - 0.05); mudou(); };
+    ib.onchange = () => { f.fim = clamp(+ib.value, f.ini + 0.05, S.plano.dur); mudou(); };
+    const rg = d.querySelector("input[type=range]"); if (rg) rg.oninput = () => { f.forca = +rg.value; fxAssinatura = JSON.stringify([fs, sel]); rg.previousElementSibling.querySelector("b").textContent = Math.round(f.forca * 100) + "%"; mudou(); };
+    const sf = d.querySelector(".selF"); if (sf) sf.onchange = () => { f.filtro = sf.value; mudou(); };
+    d.querySelector(".ir").onclick = () => { v.currentTime = Math.max(0, f.ini - 0.3); sel = { tipo: "fx", i }; fxAssinatura = ""; desenhaListaFx(); };
+    d.querySelector(".x").onclick = () => { fs.splice(i, 1); sel = { tipo: null, i: -1 }; mudou(); };
+    d.onclick = (e) => { if (["INPUT", "BUTTON", "SELECT"].includes(e.target.tagName) || e.target.closest("button")) return; sel = { tipo: "fx", i }; fxAssinatura = ""; desenhaListaFx(); };
+    el.appendChild(d);
+  });
+}
+
 // ---------- mídia: adicionar ----------
 async function enviarMidia(arq) {
   estado(`enviando ${arq.name}…`);
@@ -948,6 +1340,12 @@ function alvoTL(px, py) {
   if (py >= TL.face[0] - 3 && py <= TL.face[1] + 3) {
     const i = (S.ed.facecam.chaves || []).findIndex(k => Math.abs(tx(k.t, W) - px) < 7); if (i >= 0) return { tipo: "fkey", i };
   }
+  if (py >= TL.fx[0] - 2 && py <= TL.fx[1] + 2) {
+    const fs = S.ed.fx || [];
+    for (let i = fs.length - 1; i >= 0; i--) { const f = fs[i], x0 = tx(f.ini, W), x1 = tx(f.fim, W);
+      if (Math.abs(px - x0) < 5) return { tipo: "fxIni", i }; if (Math.abs(px - x1) < 5) return { tipo: "fxFim", i };
+      if (px > x0 && px < x1) return { tipo: "fxMove", i, off: txInv(px, W) - f.ini }; }
+  }
   if (py >= TL.leg[0] && py <= TL.leg[1]) {
     for (let i = 0; i < S.ed.legenda.grupos.length; i++) { const g = S.ed.legenda.grupos[i], x0 = tx(g.ini, W), x1 = tx(g.fim, W);
       if (Math.abs(px - x0) < 5) return { tipo: "legIni", i }; if (Math.abs(px - x1) < 5) return { tipo: "legFim", i };
@@ -970,6 +1368,7 @@ tl.addEventListener("pointerdown", (e) => {
   else if (a.tipo === "fkey") { sel = { tipo: "fkey", i: a.i }; v.currentTime = S.ed.facecam.chaves[a.i].t; abrirAba("facecam"); }
   else if (a.tipo.startsWith("leg")) { sel = { tipo: "leg", i: a.i }; abrirAba("legenda"); listaAssinatura = ""; if (a.tipo === "legMove") v.currentTime = S.ed.legenda.grupos[a.i].ini + 0.01; }
   else if (a.tipo.startsWith("mid")) { sel = { tipo: "midia", i: a.i }; abrirAba("midia"); midiaAssinatura = ""; const m = S.ed.midias[a.i]; if (a.tipo === "midMove") v.currentTime = (m.tipo === "audio" ? m.t : m.ini) + 0.01; }
+  else if (a.tipo.startsWith("fx")) { sel = { tipo: "fx", i: a.i }; abrirAba("efeitos"); fxAssinatura = ""; if (a.tipo === "fxMove") v.currentTime = S.ed.fx[a.i].ini + 0.01; }
   else v.currentTime = txInv(px, W);
   atualizaPainel();
 });
@@ -984,6 +1383,9 @@ tl.addEventListener("pointermove", (e) => {
   else if (a.tipo === "legFim") { gs[a.i].fim = +clamp(t, gs[a.i].ini + 0.05, S.plano.dur).toFixed(2); v.currentTime = Math.max(gs[a.i].ini, gs[a.i].fim - 0.05); a.mexeu = true; }
   else if (a.tipo === "legMove") { const g = gs[a.i], d = g.fim - g.ini, ini = clamp(t - a.off, 0, S.plano.dur - d); g.ini = +ini.toFixed(2); g.fim = +(ini + d).toFixed(2); a.mexeu = true; }
   else if (a.tipo === "midMove") { const m = ms[a.i]; if (m.tipo === "audio") { m.t = +clamp(t - a.off, 0, S.plano.dur).toFixed(2); } else { const d = m.fim - m.ini, ini = clamp(t - a.off, 0, S.plano.dur - d); m.ini = +ini.toFixed(2); m.fim = +(ini + d).toFixed(2); } a.mexeu = true; }
+  else if (a.tipo === "fxMove") { const f = S.ed.fx[a.i], d = f.fim - f.ini, ini = clamp(t - a.off, 0, S.plano.dur - d); f.ini = +ini.toFixed(2); f.fim = +(ini + d).toFixed(2); a.mexeu = true; }
+  else if (a.tipo === "fxIni") { const f = S.ed.fx[a.i]; f.ini = +clamp(t, 0, f.fim - 0.05).toFixed(2); v.currentTime = f.ini + 0.01; a.mexeu = true; }
+  else if (a.tipo === "fxFim") { const f = S.ed.fx[a.i]; f.fim = +clamp(t, f.ini + 0.05, S.plano.dur).toFixed(2); v.currentTime = Math.max(f.ini, f.fim - 0.05); a.mexeu = true; }
   else if (a.tipo === "midIni") { const m = ms[a.i]; m.ini = +clamp(t, 0, m.fim - 0.05).toFixed(2); v.currentTime = m.ini + 0.01; a.mexeu = true; }
   else if (a.tipo === "midFim") { const m = ms[a.i]; if (m.tipo === "audio") m.dur = +Math.max(0.2, t - m.t).toFixed(2); else m.fim = +clamp(t, m.ini + 0.05, S.plano.dur).toFixed(2); a.mexeu = true; }
 });
@@ -1015,14 +1417,14 @@ document.addEventListener("keydown", (e) => {
   else if (k === "o") { $("#btMarcaFim").click(); abrirAba("cortar"); }
   else if (k === "x") $("#btRemover").click();
   else if (e.key === "Delete" || e.key === "Backspace") {
-    const L = { key: S.ed.camera.chaves, fkey: S.ed.facecam.chaves || [], leg: S.ed.legenda.grupos, midia: S.ed.midias || [] }[sel.tipo];
+    const L = { key: S.ed.camera.chaves, fkey: S.ed.facecam.chaves || [], leg: S.ed.legenda.grupos, midia: S.ed.midias || [], fx: S.ed.fx || [] }[sel.tipo];
     if (L && L[sel.i]) { L.splice(sel.i, 1); sel = { tipo: null, i: -1 }; mudou(); }
   }
 });
 function tocar() { if (v.paused) { if (v.currentTime >= S.plano.dur - 0.05) v.currentTime = 0; v.play(); } else v.pause(); }
 $("#btPlay").onclick = tocar;
-v.addEventListener("play", () => $("#btPlay").textContent = "❚❚ Pausar");
-v.addEventListener("pause", () => { $("#btPlay").textContent = "▶ Tocar"; atualizaPainel(); });
+v.addEventListener("play", () => $("#btPlay").innerHTML = icone("pause"));
+v.addEventListener("pause", () => { $("#btPlay").innerHTML = icone("play"); atualizaPainel(); });
 v.addEventListener("timeupdate", () => { if (S && v.currentTime >= S.plano.dur) v.pause(); });
 $("#btDesfazer").onclick = desfazer; $("#btRefazer").onclick = refazer;
 
@@ -1048,8 +1450,8 @@ async function carregarCorte(n) {
   S = { slug: projeto.slug, n, plano: d.plano, ed: d.edicao, padrao: d.padrao, const: d.constantes, final: d.final };
   S.ed.camera = S.ed.camera || { modo: "auto", chaves: [] }; S.ed.facecam = S.ed.facecam || JSON.parse(JSON.stringify(d.padrao.facecam));
   S.ed.legenda = S.ed.legenda || JSON.parse(JSON.stringify(d.padrao.legenda)); S.ed.midias = S.ed.midias || []; S.ed.remover = S.ed.remover || [];
-  S.ed.facecam.chaves = S.ed.facecam.chaves || [];
-  hist = []; futuro = []; ultimo = snapshot(); sel = { tipo: null, i: -1 }; marca = { ini: null, fim: null }; listaAssinatura = ""; midiaAssinatura = "";
+  S.ed.facecam.chaves = S.ed.facecam.chaves || []; padroesEfeitos();
+  hist = []; futuro = []; ultimo = snapshot(); sel = { tipo: null, i: -1 }; marca = { ini: null, fim: null }; listaAssinatura = ""; midiaAssinatura = ""; fxAssinatura = "";
   document.querySelectorAll("#tabsCortes button").forEach(b => b.classList.toggle("ativo", +b.dataset.n === n));
   try { const f = new FontFace("VCFonte", `url(/midia/${encodeURIComponent(S.slug)}/${n}/fonte.ttf)`); await f.load(); document.fonts.add(f); } catch (e) { /* usa Arial Black */ }
   v.src = `/midia/${encodeURIComponent(S.slug)}/${n}/previa.mp4`;
@@ -1065,8 +1467,8 @@ function mostrarFinal() {
   const novo = `/midia/${encodeURIComponent(S.slug)}/${S.n}/final.mp4?v=${Date.now()}`;
   const bx = $("#btBaixar");
   if (S.final) { fv.src = novo; $("#finalInfo").textContent = `Arquivo: saida/${S.slug}/corte-${S.n}.mp4 (a versão automática fica em saida/${S.slug}/automatico/).`;
-    bx.href = novo; bx.download = `${S.slug}-corte-${S.n}.mp4`; bx.style.display = "inline-block"; }
-  else { fv.removeAttribute("src"); bx.style.display = "none"; $("#finalInfo").textContent = "Este corte ainda não foi renderizado."; }
+    bx.href = novo; bx.download = `${S.slug}-corte-${S.n}.mp4`; bx.style.display = "inline-flex"; }
+  else { fv.removeAttribute("src"); bx.style.display = "none"; $("#finalInfo").textContent = "Este corte ainda não foi renderizado. Clique em Renderizar."; }
 }
 $("#btPasta").onclick = () => api(`/api/abrir-pasta/${encodeURIComponent(S.slug)}`, { method: "POST" }).catch(e => estado("erro: " + e.message, "erro"));
 $("#btRender").onclick = async () => {
@@ -1080,7 +1482,7 @@ function acompanhar() {
   acompanhando = setInterval(async () => {
     const st = await api(`/api/estado/${slug}/${n}`).catch(() => null); if (!st) return;
     if (S.slug !== slug || S.n !== n) { clearInterval(acompanhando); $("#btRender").disabled = false; return; }
-    if (st.estado === "renderizando") estado(`renderizando o corte ${n}… ${Math.round(Date.now() / 1000 - st.ini)} s (uns 2 a 3 min)`);
+    if (st.estado === "renderizando") estado(`renderizando o corte ${n}… ${Math.round(Date.now() / 1000 - st.ini)} s (uns 2 a 3 min)`, "trabalhando");
     else { clearInterval(acompanhando); $("#btRender").disabled = false;
       if (st.estado === "pronto") { estado(`corte ${n} renderizado ✓ ${st.msg}`, "ok"); S.final = true; abrirAba("final"); }
       else estado(st.msg || "erro", "erro"); }
@@ -1089,7 +1491,7 @@ function acompanhar() {
 $("#btDescartar").onclick = async () => {
   if (!confirm("Apagar as edições deste corte (câmera, legenda, facecam, mídia e trechos removidos) e voltar ao automático? O vídeo final só muda quando você renderizar de novo.")) return;
   clearTimeout(salvarTimer); await api(`/api/descartar/${S.slug}/${S.n}`, { method: "POST" });
-  hist.push(snapshot()); S.ed = JSON.parse(JSON.stringify(S.padrao)); S.ed.midias = []; S.ed.remover = []; S.ed.facecam.chaves = [];
+  hist.push(snapshot()); S.ed = JSON.parse(JSON.stringify(S.padrao)); S.ed.midias = []; S.ed.remover = []; S.ed.facecam.chaves = []; S.ed.visual = null; S.ed.fx = []; padroesEfeitos();
   ultimo = snapshot(); marcarEditado(false); atualizaPainel(); estado("voltou ao automático (renderize pra aplicar no vídeo)");
 };
 $("#projeto").onchange = () => carregarProjeto($("#projeto").value);

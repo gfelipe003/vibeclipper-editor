@@ -4,63 +4,56 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VibeClipper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/estilo.css">
 <style>
-:root { --bg: #0f1115; --painel: #171a21; --painel2: #1e222b; --borda: #2a2f3a; --texto: #e6e8ee; --fraco: #8b93a4;
-  --acento: #ff4d3d; --acento2: #ffb020; --ok: #2fbf71; --raio: 12px; }
-* { box-sizing: border-box; }
-html, body { margin: 0; background: var(--bg); color: var(--texto); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-button, input, select { font: inherit; color: inherit; }
-a { color: inherit; }
-.topo { display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--borda); background: var(--painel); }
-.topo h1 { font-size: 18px; margin: 0; } .topo h1 b { color: var(--acento); }
-.topo .espaco { flex: 1; }
-.wrap { max-width: 1080px; margin: 0 auto; padding: 24px 16px 60px; }
-.card { background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio); padding: 20px; margin-bottom: 22px; }
-h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--fraco); margin: 0 0 14px; font-weight: 600; }
-.abas { display: inline-flex; border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
-.abas button { background: transparent; border: 0; padding: 8px 16px; cursor: pointer; color: var(--fraco); }
-.abas button.ativo { background: var(--acento); color: #fff; }
-input[type=text] { width: 100%; background: var(--bg); border: 1px solid var(--borda); border-radius: 10px; padding: 12px 14px; font-size: 16px; }
-input[type=text]:focus { outline: 2px solid var(--acento); border-color: transparent; }
-.soltar { border: 2px dashed var(--borda); border-radius: 12px; padding: 34px 16px; text-align: center; color: var(--fraco); cursor: pointer; transition: .15s; }
-.soltar.em-cima { border-color: var(--acento); background: rgba(255,77,61,.06); color: var(--texto); }
+.hero { position: relative; overflow: hidden; border-radius: 20px; padding: 34px 30px 28px; margin-bottom: 22px; border: 1px solid var(--linha);
+  background: radial-gradient(900px 300px at 0% 0%, rgba(255,77,61,.16), transparent 60%), radial-gradient(700px 260px at 100% 0%, rgba(255,138,61,.10), transparent 60%), var(--s1); }
+.hero h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -.025em; font-weight: 700; }
+.hero h1 span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero > p { margin: 0 0 22px; color: var(--fraco); font-size: 14.5px; max-width: 640px; }
+.abas { display: inline-flex; padding: 3px; gap: 2px; background: var(--s0); border: 1px solid var(--linha); border-radius: 11px; margin-bottom: 12px; }
+.abas button { background: transparent; border: 0; padding: 7px 16px; color: var(--fraco); border-radius: 8px; }
+.abas button:hover { background: var(--s3); color: var(--texto); }
+.abas button.ativo { background: var(--s4); color: var(--texto); box-shadow: 0 1px 2px rgba(0,0,0,.4); }
+#url { width: 100%; padding: 15px 16px; font-size: 15.5px; border-radius: 12px; background: var(--s0); }
+.soltar { display: block; border: 1.5px dashed var(--linha2); border-radius: 14px; padding: 34px 16px; text-align: center; color: var(--fraco); cursor: pointer; transition: .15s; background: var(--s0); }
+.soltar:hover, .soltar.em-cima { border-color: var(--acento); background: rgba(255,77,61,.05); color: var(--texto); }
 .soltar b { color: var(--texto); }
-.opcoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 16px 0; }
-.opcoes label { display: block; font-size: 12.5px; color: var(--fraco); margin-bottom: 5px; }
-select { width: 100%; background: var(--bg); border: 1px solid var(--borda); border-radius: 8px; padding: 8px 10px; }
-.btn { background: var(--painel2); border: 1px solid var(--borda); border-radius: 10px; padding: 9px 16px; cursor: pointer; text-decoration: none; display: inline-block; }
-.btn:hover { border-color: #3c4352; }
-.btn.primario { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; padding: 12px 22px; font-size: 16px; }
-.btn:disabled { opacity: .5; cursor: default; }
-.nota { color: var(--fraco); font-size: 13px; margin-top: 10px; }
-.barra { height: 8px; background: var(--bg); border-radius: 99px; overflow: hidden; margin: 8px 0 6px; }
-.barra > div { height: 100%; background: linear-gradient(90deg, var(--acento), var(--acento2)); transition: width .5s; }
-.tarefa { border: 1px solid var(--borda); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; background: var(--painel2); }
+.opcoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 18px 0 20px; }
+.opcoes label { display: block; font-size: 12px; font-weight: 500; color: var(--fraco); margin-bottom: 6px; }
+.opcoes select { width: 100%; padding: 9px 30px 9px 11px; border-radius: 10px; }
+.nota { color: var(--fraco); font-size: 12.5px; margin-top: 12px; }
+.nota a { color: var(--texto); }
+.barra { height: 6px; background: var(--s0); border-radius: 99px; overflow: hidden; margin: 10px 0 8px; }
+.barra > div { height: 100%; background: var(--grad); transition: width .5s; border-radius: 99px; }
+.tarefa { border: 1px solid var(--linha); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; background: var(--s2); }
 .tarefa .l1 { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .tarefa .tit { font-weight: 600; flex: 1; min-width: 200px; overflow-wrap: anywhere; }
-.selo { font-size: 12px; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--borda); white-space: nowrap; }
-.selo.rodando { border-color: var(--acento2); color: var(--acento2); }
-.selo.pronto { border-color: var(--ok); color: var(--ok); }
-.selo.erro, .selo.cancelado { border-color: var(--acento); color: var(--acento); }
-.passos { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--fraco); }
-.passos span.feito { color: var(--ok); } .passos span.agora { color: var(--texto); font-weight: 600; }
-pre.log { background: #0a0c10; border: 1px solid var(--borda); border-radius: 8px; padding: 10px; font-size: 12px; max-height: 260px; overflow: auto; white-space: pre-wrap; margin: 8px 0 0; }
-.grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
-.video { background: var(--painel2); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
-.video .mini { aspect-ratio: 16/9; background: #000 center/cover no-repeat; }
-.video .info { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
-.video .t { font-weight: 600; font-size: 14px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.video .m { font-size: 12.5px; color: var(--fraco); }
-.video .acoes { display: flex; gap: 6px; margin-top: auto; }
-.video .acoes .btn { padding: 6px 12px; font-size: 13px; }
-.vazio { color: var(--fraco); padding: 20px 0; }
+.passos { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 12px; color: var(--fraco2); }
+.passos span.feito { color: var(--verde); } .passos span.agora { color: var(--texto); font-weight: 600; }
+pre.log { background: var(--s0); border: 1px solid var(--linha); border-radius: 10px; padding: 12px; font: 12px/1.5 ui-monospace, "JetBrains Mono", monospace; max-height: 260px; overflow: auto; white-space: pre-wrap; margin: 10px 0 0; color: var(--fraco); }
+.grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.video { background: var(--s2); border: 1px solid var(--linha); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; transition: transform .15s, border-color .15s, box-shadow .15s; }
+.video:hover { transform: translateY(-2px); border-color: var(--linha2); box-shadow: var(--sombra); }
+.video .mini { aspect-ratio: 16/9; background: #000 center/cover no-repeat; position: relative; }
+.video .mini::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.55)); }
+.video .mini .contador { position: absolute; left: 10px; bottom: 9px; z-index: 1; }
+.video .info { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.video .t { font-weight: 600; font-size: 14px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.video .m { font-size: 12px; color: var(--fraco); }
+.video .acoes { display: flex; gap: 6px; margin-top: auto; padding-top: 4px; }
+.video .acoes .btn { flex: 1; }
+.vazio { color: var(--fraco); padding: 34px 0; text-align: center; border: 1px dashed var(--linha2); border-radius: 14px; grid-column: 1 / -1; }
 </style>
 </head>
 <body>
-<div class="topo"><h1><b>Vibe</b>Clipper</h1><div class="espaco"></div><a class="btn" href="/config">⚙ Configurações</a><a class="btn" href="/editar">Abrir o editor</a></div>
+<div class="barra-pag"><a class="marca" href="/"><span class="logo"></span><span>Vibe<b>Clipper</b></span></a><div class="espaco"></div><a class="btn ghost" href="/config">Configurações</a><a class="btn" href="/editar">Abrir o editor</a></div>
 <div class="wrap">
-  <section class="card">
-    <h2>Novo vídeo pra cortar</h2>
+  <section class="hero">
+    <h1>Transforme vídeos longos em <span>cortes prontos</span></h1>
+    <p>Cole o link ou envie o arquivo. O VibeClipper assiste tudo, escolhe os melhores momentos e entrega cortes verticais editados, com legenda, zoom e efeitos.</p>
     <div class="abas"><button id="abaLink" class="ativo">Link do YouTube</button><button id="abaArq">Arquivo de vídeo</button></div>
     <div id="pLink"><input type="text" id="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off"></div>
     <div id="pArq" style="display:none">
@@ -78,13 +71,13 @@ pre.log { background: #0a0c10; border: 1px solid var(--borda); border-radius: 8p
       <div><label>Idioma do vídeo</label><select id="idioma"><option value="pt">Português</option><option value="en">Inglês</option><option value="es">Espanhol</option></select></div>
       <div><label>Quem escolhe os momentos</label><select id="modelo"><option value="opus">Claude Opus (mais caprichado)</option><option value="sonnet">Claude Sonnet (mais econômico)</option></select></div>
     </div>
-    <button class="btn primario" id="btIr">✂ Fazer os cortes</button>
+    <button class="btn primario grande" id="btIr">✂ Fazer os cortes</button>
     <div class="nota">Download, transcrição, corte e edição rodam no seu computador, de graça. Só a escolha dos momentos usa IA: uma pergunta por vídeo, pela sua chave da API do Claude ou pelo Claude Code logado (<a href="/config">Configurações</a>). Use em vídeos seus ou que você tem autorização pra cortar.</div>
     <div class="nota" id="semIA" style="display:none;color:var(--acento2)">⚠ Nenhuma IA configurada ainda: coloque a sua chave da API do Claude em <a href="/config">Configurações</a>.</div>
     <div class="nota" id="aviso" style="color:var(--acento)"></div>
   </section>
-  <section class="card" id="cardTarefas" style="display:none"><h2>Em andamento</h2><div id="listaTarefas"></div></section>
-  <section class="card"><h2>Seus vídeos</h2><div class="grade" id="grade"></div></section>
+  <section class="card" id="cardTarefas" style="display:none"><div class="card-t"><h2>Em andamento</h2></div><div id="listaTarefas"></div></section>
+  <section class="card"><div class="card-t"><div><h2>Seus vídeos</h2><p>Abra um vídeo pra ajustar os cortes no editor.</p></div></div><div class="grade" id="grade"></div></section>
 </div>
 <script>
 "use strict";
@@ -134,10 +127,10 @@ async function atualizar() {
       const passos = ETAPAS.slice(0, 6).map((n, i) => `<span class="${t.estado === "pronto" || i < t.etapa ? "feito" : i === t.etapa && t.estado === "rodando" ? "agora" : ""}">${i < t.etapa || t.estado === "pronto" ? "✓" : "•"} ${n}</span>`).join("");
       const dur = (t.fim || Date.now() / 1000) - t.inicio;
       return `<div class="tarefa" data-id="${esc(t.id)}"><div class="l1"><div class="tit">${esc(t.titulo || t.origem)}</div>
-        <span class="selo ${sel}">${esc(t.estado)}</span><span class="nota" style="margin:0">${tempo(dur)}</span>
-        ${t.estado === "rodando" || t.estado === "na fila" ? `<button class="btn cancelar" style="padding:4px 10px;font-size:13px">Cancelar</button>` : ""}
-        ${t.estado === "pronto" && t.slug ? `<a class="btn primario" style="padding:6px 14px;font-size:14px" href="/editar?v=${encodeURIComponent(t.slug)}">Abrir no editor</a>` : ""}
-        <button class="btn verlog" style="padding:4px 10px;font-size:13px">${logsAbertos.has(t.id) ? "Esconder detalhes" : "Detalhes"}</button></div>
+        <span class="selo ${sel}">${esc(t.estado)}</span><span class="selo">${tempo(dur)}</span>
+        ${t.estado === "rodando" || t.estado === "na fila" ? `<button class="btn pequeno perigo cancelar">Cancelar</button>` : ""}
+        ${t.estado === "pronto" && t.slug ? `<a class="btn primario pequeno" href="/editar?v=${encodeURIComponent(t.slug)}">Abrir no editor</a>` : ""}
+        <button class="btn pequeno ghost verlog">${logsAbertos.has(t.id) ? "Esconder detalhes" : "Detalhes"}</button></div>
         <div class="barra"><div style="width:${t.estado === "pronto" ? 100 : t.progresso || 0}%"></div></div>
         <div class="passos">${passos}</div>
         <div class="nota" style="margin-top:6px">${esc(t.estado === "erro" ? "Erro: " + (t.erro || "") : t.msg || "")}</div>
@@ -150,11 +143,11 @@ async function atualizar() {
       const pre = d.querySelector("pre.log"); if (pre) api(`/api/tarefa/${id}/log`).then(j => { pre.textContent = j.log || "(sem nada ainda)"; pre.scrollTop = pre.scrollHeight; });
     });
     const g = $("#grade");
-    g.innerHTML = lista.length ? lista.map(p => `<div class="video"><div class="mini" style="background-image:${p.miniatura ? `url('/miniatura/${encodeURIComponent(p.slug)}')` : "none"}"></div>
+    g.innerHTML = lista.length ? lista.map(p => `<div class="video"><div class="mini" style="background-image:${p.miniatura ? `url('/miniatura/${encodeURIComponent(p.slug)}')` : "none"}"><span class="selo contador${p.prontos === p.cortes && p.cortes ? " ok" : ""}">${p.prontos}/${p.cortes} cortes</span></div>
       <div class="info"><div class="t" title="${esc(p.titulo)}">${esc(p.titulo)}</div>
       <div class="m">${p.prontos} de ${p.cortes} cortes prontos · ${new Date(p.quando * 1000).toLocaleDateString("pt-BR")}</div>
-      <div class="acoes"><a class="btn" href="/editar?v=${encodeURIComponent(p.slug)}">Editar</a>
-      <button class="btn pasta" data-slug="${esc(p.slug)}">Abrir pasta</button></div></div></div>`).join("")
+      <div class="acoes"><a class="btn primario pequeno" href="/editar?v=${encodeURIComponent(p.slug)}">Editar</a>
+      <button class="btn pequeno pasta" data-slug="${esc(p.slug)}">Abrir pasta</button></div></div></div>`).join("")
       : `<div class="vazio">Nenhum vídeo ainda. Mande um link ou arquivo aí em cima.</div>`;
     g.querySelectorAll(".pasta").forEach(b => b.onclick = () => api(`/api/abrir-pasta/${encodeURIComponent(b.dataset.slug)}`, { method: "POST" }));
   } catch (e) { console.error(e); }

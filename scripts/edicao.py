@@ -5,8 +5,12 @@ O editor grava T/corte-N/edicao.json:
     "camera":  {"modo": "auto" | "manual", "chaves": [{"t": s, "cx": 0 a 1, "z": zoom}]},
     "legenda": {"cor": "#FA3F32", "tam": 100, "y": 1305, "grupos": [{"ini": s, "fim": s, "texto": "...", "enfase": [...]}]},
     "facecam": {"visivel": true, "x": px, "y": px, "larg": px, "raio": px},
-    "efeitos": true
+    "efeitos": true,
+    "visual":  {"filtro": "cinema", "vinheta": 0.3, "grao": 0.2, "barra": true, "cor_barra": "#FF4D3D"},
+    "fx":      [{"tipo": "flash" | "tremor" | "pulso" | "glitch" | "desfoque" | "filtro" | "entrada_preto" | "saida_preto",
+                 "ini": s, "fim": s, "forca": 0 a 1}]
   }
+  - visual/fx/estilo da facecam: ver scripts/visual.py;
   - camera manual: a câmera passa pelos pontos-chave (centro x e zoom), com movimento suave entre eles; z < 1 abre
     (fundo desfocado em cima e embaixo), z > 1 aproxima;
   - legenda: os blocos de texto do jeito que a pessoa editou (texto, tempo, palavras de destaque), cor, tamanho e altura;
@@ -191,7 +195,8 @@ def renderizar_editado(T, n, saida):
                 audios.append({"arquivo": arq, "t": round(t2, 3), "volume_db": m.get("volume_db", -6),
                                "ini_arq": m.get("ini_arq", 0), "dur": m.get("dur"), "fade": m.get("fade", True)})
     plano["extras"] = {"remover": remover, "facecam_chaves": (ed.get("facecam") or {}).get("chaves") or [],
-                       "sobreposicoes": sobre, "audios": audios}
+                       "sobreposicoes": sobre, "audios": audios, "visual": ed.get("visual") or {},
+                       "fx": [f for f in (ed.get("fx") or []) if f.get("tipo")]}
     arq_plano = os.path.join(pasta, "plano-editado.json")
     json.dump(plano, open(arq_plano, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     leg = ed.get("legenda")
@@ -212,6 +217,11 @@ def renderizar_editado(T, n, saida):
             if t2 is not None:
                 sfx.append(dict(s, t=round(t2, 3)))
         sfx += [s for s in efeitos.planejar({"zooms": []}, meta2)]
+        for f in ed.get("fx") or []:                # zoom pulso e glitch ganham whoosh; flash ganha pop
+            som = {"pulso": "whoosh.wav", "glitch": "whoosh-2.wav", "flash": "pop.wav"}.get(f.get("tipo"))
+            t2 = no_final(float(f.get("ini", 0)), remover) if som else None
+            if t2 is not None:
+                sfx.append({"t": round(max(0.0, t2 - 0.05), 3), "som": som, "ganho_db": -8.0, "motivo": "efeito " + f["tipo"]})
         sfx.sort(key=lambda s: s["t"])
     arq_sfx = os.path.join(pasta, "sfx-editado.json")
     json.dump({"pasta_sons": efeitos.SONS, "sons": sfx}, open(arq_sfx, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
