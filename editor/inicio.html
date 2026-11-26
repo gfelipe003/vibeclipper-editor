@@ -24,6 +24,11 @@
 .opcoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 18px 0 20px; }
 .opcoes label { display: block; font-size: 12px; font-weight: 500; color: var(--fraco); margin-bottom: 6px; }
 .opcoes select { width: 100%; padding: 9px 30px 9px 11px; border-radius: 10px; }
+.orient { margin: -4px 0 20px; }
+.orient label { display: block; font-size: 12px; font-weight: 500; color: var(--fraco); margin-bottom: 6px; }
+.orient label span { color: var(--fraco2); font-weight: 400; }
+#orientacao { width: 100%; box-sizing: border-box; padding: 11px 13px; font: inherit; font-size: 14px; line-height: 1.45; border-radius: 10px; background: var(--s0); color: var(--texto); border: 1px solid var(--linha); resize: vertical; min-height: 64px; }
+#orientacao:focus { outline: none; border-color: var(--acento); }
 .nota { color: var(--fraco); font-size: 12.5px; margin-top: 12px; }
 .nota a { color: var(--texto); }
 .barra { height: 6px; background: var(--s0); border-radius: 99px; overflow: hidden; margin: 10px 0 8px; }
@@ -70,6 +75,12 @@ pre.log { background: var(--s0); border: 1px solid var(--linha); border-radius: 
         <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>10</option></select></div>
       <div><label>Idioma do vídeo</label><select id="idioma"><option value="pt">Português</option><option value="en">Inglês</option><option value="es">Espanhol</option></select></div>
       <div><label>Quem escolhe os momentos</label><select id="modelo"><option value="opus">Claude Opus (mais caprichado)</option><option value="sonnet">Claude Sonnet (mais econômico)</option></select></div>
+      <div><label>No fim</label><select id="renderizar"><option value="nao">Eu renderizo no editor</option>
+        <option value="sim">Já renderizar tudo</option></select></div>
+    </div>
+    <div class="orient">
+      <label for="orientacao">Orientação pros cortes <span>(opcional)</span></label>
+      <textarea id="orientacao" rows="3" maxlength="2000" placeholder="Ex.: Quero que a parte de 12:30 até 13:45 vire um corte. Foque nos momentos engraçados. Evite a parte do patrocínio."></textarea>
     </div>
     <button class="btn primario grande" id="btIr">✂ Fazer os cortes</button>
     <div class="nota">Download, transcrição, corte e edição rodam no seu computador, de graça. Só a escolha dos momentos usa IA: uma pergunta por vídeo, pela sua chave da API do Claude ou pelo Claude Code logado (<a href="/config">Configurações</a>). Use em vídeos seus ou que você tem autorização pra cortar.</div>
@@ -105,16 +116,16 @@ function enviar(f) {
 $("#btIr").onclick = async () => {
   $("#aviso").textContent = ""; const bt = $("#btIr"); bt.disabled = true;
   try {
-    const dados = { gameplay: $("#gameplay").value, cortes: +$("#cortes").value, idioma: $("#idioma").value, modelo: $("#modelo").value };
+    const dados = { gameplay: $("#gameplay").value, cortes: +$("#cortes").value, idioma: $("#idioma").value, modelo: $("#modelo").value, orientacao: $("#orientacao").value.trim(), renderizar: $("#renderizar").value };
     if (modo === "link") { dados.url = $("#url").value.trim(); if (!dados.url) throw new Error("cole o link do vídeo"); }
     else { if (!arquivo) throw new Error("escolha um arquivo de vídeo"); dados.upload = (await enviar(arquivo)).upload; }
     await api("/api/tarefa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dados) });
-    $("#url").value = ""; arquivo = null; $("#soltarTxt").innerHTML = "<b>Arraste o vídeo aqui</b> ou clique pra escolher"; $("#upBarra").style.display = "none";
+    $("#url").value = ""; $("#orientacao").value = ""; arquivo = null; $("#soltarTxt").innerHTML = "<b>Arraste o vídeo aqui</b> ou clique pra escolher"; $("#upBarra").style.display = "none";
     atualizar();
   } catch (e) { $("#aviso").textContent = e.message; }
   bt.disabled = false; bt.textContent = "✂ Fazer os cortes";
 };
-const ETAPAS = ["Baixando", "Transcrevendo", "Escolhendo os momentos", "Cortando", "Enquadrando", "Editando e renderizando", "Pronto"];
+const ETAPAS = ["Baixando", "Transcrevendo", "Escolhendo os momentos", "Cortando", "Enquadrando", "Legendando", "Pronto"];
 function tempo(s) { s = Math.max(0, Math.round(s)); return s >= 60 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s` : `${s} s`; }
 async function atualizar() {
   try {

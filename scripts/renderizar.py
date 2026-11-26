@@ -11,7 +11,9 @@
 """
 import argparse
 import json
+import math
 import os
+import re
 import subprocess
 import sys
 import time
@@ -113,35 +115,125 @@ def imagem_rgba(arq):
     return a[:, :, 2::-1].copy(), a[:, :, 3:4].astype(np.float32) / 255.0      # BGR, alfa
 
 
-def texto_rgba(s):
-    """Texto por cima (do editor): fonte forte, contorno preto, fundo opcional. Devolve (BGR, alfa)."""
-    from PIL import Image, ImageDraw, ImageFont
+INCLINACAO = 0.2          # itálico: quanto o topo da letra anda pra direita (fração da altura)
+FONTES_PESO = {"bold": ["arialbd.ttf", "Arial Bold.ttf", "DejaVuSans-Bold.ttf"],
+               "normal": ["arial.ttf", "Arial.ttf", "DejaVuSans.ttf"]}
+
+
+def fonte_texto(s, tam):
+    """A fonte do texto por cima: 'black' (padrão) = a fonte forte da legenda; 'bold' e 'normal' = Arial."""
+    from PIL import ImageFont
+    peso = s.get("peso") or "black"
+    cands = FONTES_PESO.get(peso, []) if peso != "black" else []
+    cands = cands + [s.get("fonte_arq") or "arial.ttf", "arial.ttf"]
+    for c in cands:
+        try:
+            return ImageFont.truetype(c, tam)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
+def texto_visivel(texto, frac, modo):
+    """Quantos caracteres do texto já apareceram (letra por letra ou palavra por palavra), frac de 0 a 1."""
+    if frac >= 1:
+        return len(texto)
+    if modo == "palavra":
+        fins = [m.end() for m in re.finditer(r"\S+", texto)]
+        k = math.ceil(frac * len(fins) - 1e-9)
+        return fins[k - 1] if k > 0 else 0
+    return math.ceil(frac * len(texto) - 1e-9)
+
+
+def texto_rgba(s, n_vis=None):
+    """Texto por cima (do editor): peso, itálico, alinhamento, contorno e fundo opcionais. n_vis = só os primeiros
+    caracteres (efeito de digitação), sem mexer no layout. Devolve (BGR, alfa)."""
+    from PIL import Image, ImageDraw
     tam = int(s.get("tam", 80))
-    try:
-        fnt = ImageFont.truetype(s.get("fonte_arq") or "arial.ttf", tam)
-    except OSError:
-        fnt = ImageFont.load_default()
-    linhas = str(s.get("texto", "")).split("\n")
+    fnt = fonte_texto(s, tam)
+    texto = str(s.get("texto", ""))
+    linhas = texto.split("\n")
     borda = max(2, tam // 12)
+    contorno = s.get("contorno", not s.get("fundo"))
+    italico = bool(s.get("italico"))
+    alin = s.get("alinhamento") or "centro"
     caixas = [fnt.getbbox(l or " ", stroke_width=borda) for l in linhas]
     lw = max(b[2] - b[0] for b in caixas)
     lh = int(tam * 1.2)
     pad = int(tam * 0.35) if s.get("fundo") else borda + 2
-    W_, H_ = lw + 2 * pad, lh * len(linhas) + 2 * pad
+    extra = int(round(INCLINACAO * lh)) if italico else 0          # a inclinação precisa de espaço à direita
+    W_, H_ = lw + 2 * pad + extra, lh * len(linhas) + 2 * pad
     im = Image.new("RGBA", (W_, H_), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
     if s.get("fundo"):
         fc = s.get("cor_fundo", "#000000").lstrip("#")
-        d.rounded_rectangle((0, 0, W_ - 1, H_ - 1), radius=int(tam * 0.3),
-                            fill=(int(fc[0:2], 16), int(fc[2:4], 16), int(fc[4:6], 16), 230))
+        ImageDraw.Draw(im).rounded_rectangle((0, 0, W_ - 1, H_ - 1), radius=int(tam * 0.3),
+                                             fill=(int(fc[0:2], 16), int(fc[2:4], 16), int(fc[4:6], 16), 230))
+    camada = Image.new("RGBA", (W_, H_), (0, 0, 0, 0))
+    d = ImageDraw.Draw(camada)
     cor = s.get("cor", "#FFFFFF").lstrip("#")
     rgb = (int(cor[0:2], 16), int(cor[2:4], 16), int(cor[4:6], 16), 255)
+    resta = len(texto) if n_vis is None else n_vis
     for i, (l, b) in enumerate(zip(linhas, caixas)):
-        x = (W_ - (b[2] - b[0])) / 2 - b[0]
-        d.text((x, pad + i * lh + (lh - tam) / 2 - b[1] * 0.2), l, font=fnt, fill=rgb,
-               stroke_width=0 if s.get("fundo") else borda, stroke_fill=(0, 0, 0, 255))
+        largura = b[2] - b[0]
+        if alin == "esquerda":
+            x = pad - b[0]
+        elif alin == "direita":
+            x = W_ - extra - pad - largura - b[0]
+        else:
+            x = (W_ - extra - largura) / 2 - b[0]
+        parte = l[:max(0, resta)]
+        resta -= len(l) + 1                                         # +1 = a quebra de linha
+        if not parte:
+            continue
+        alvo, dd = (Image.new("RGBA", (W_, H_), (0, 0, 0, 0)), None) if italico else (camada, d)
+        (dd or ImageDraw.Draw(alvo)).text((x, pad + i * lh + (lh - tam) / 2 - b[1] * 0.2), parte, font=fnt, fill=rgb,
+                                          stroke_width=borda if contorno else 0, stroke_fill=(0, 0, 0, 255))
+        if italico:                                                 # inclina a linha: o topo anda pra direita, a base fica
+            base = pad + (i + 1) * lh
+            camada.alpha_composite(alvo.transform((W_, H_), Image.AFFINE, (1, INCLINACAO, -INCLINACAO * base, 0, 1, 0),
+                                                  resample=Image.BICUBIC))
+    im.alpha_composite(camada)
     a = np.array(im)
     return a[:, :, 2::-1].copy(), a[:, :, 3:4].astype(np.float32) / 255.0
+
+
+def _ease(p):
+    return 1 - (1 - p) ** 3
+
+
+def _ease_back(p):
+    c1 = 1.70158
+    return 1 + (c1 + 1) * (p - 1) ** 3 + c1 * (p - 1) ** 2
+
+
+def animacao(s, t):
+    """Entrada e saída de imagem/texto do editor no tempo t: (opacidade, escala, deslocamento y, fração do texto,
+    modo do texto). Igual à prévia do editor (index.html, animacaoMidia)."""
+    legado = (s.get("anim") or "fade") == "fade"
+    ent = s.get("entrada") or ("fade" if legado else "nenhuma")
+    sai = s.get("saida") or ("fade" if legado else "nenhuma")
+    d_in = max(0.05, float(s.get("dur_entrada") or 0.15))
+    d_out = max(0.05, float(s.get("dur_saida") or 0.15))
+    p_in = 1.0 if ent == "nenhuma" else min(1.0, max(0.0, (t - s["ini"]) / d_in))
+    p_out = 1.0 if sai == "nenhuma" else min(1.0, max(0.0, (s["fim"] - t) / d_out))
+    op, esc, dy, frac, modo = float(s.get("opacidade", 1.0)), 1.0, 0.0, 1.0, "letra"
+    for tipo, p, sinal in ((ent, p_in, 1), (sai, p_out, -1)):
+        if p >= 1 or tipo == "nenhuma":
+            continue
+        if tipo == "fade":
+            op *= p
+        elif tipo == "subir":
+            op *= p
+            dy += sinal * (1 - _ease(p)) * 90
+        elif tipo == "zoom":
+            op *= min(1.0, p * 2)
+            esc *= max(0.05, 0.4 + 0.6 * (_ease_back(p) if sinal > 0 else _ease(p)))
+        elif tipo in ("letra", "palavra"):
+            if s.get("tipo") == "texto":
+                frac, modo = min(frac, p), tipo
+            else:
+                op *= p
+    return op, esc, dy, frac, modo
 
 
 def renderizar(fonte, plano, saida, legenda=None, sfx=None, cru=False, ate=None):
@@ -241,7 +333,7 @@ def renderizar(fonte, plano, saida, legenda=None, sfx=None, cru=False, ate=None)
             lh = max(8, int(round(img.shape[0] * lw / img.shape[1])))
             img = cv2.resize(img, (lw, lh), interpolation=cv2.INTER_AREA)
             al = cv2.resize(al, (lw, lh), interpolation=cv2.INTER_AREA)[:, :, None]
-        sobre.append({**s, "img": img, "alfa": al})
+        sobre.append({**s, "img": img, "alfa": al, "parcial": {}})
     lq = bw + ww
     pd = subprocess.Popen(dec, stdout=subprocess.PIPE, bufsize=lq * H * 3 * 2)
     pe = subprocess.Popen(enc, stdin=subprocess.PIPE, cwd=pasta)
@@ -299,14 +391,25 @@ def renderizar(fonte, plano, saida, legenda=None, sfx=None, cru=False, ate=None)
                 out = visual.glitch(out, at, t)
             out = visual.vinheta(out, float(vis.get("vinheta") or 0))
             out = visual.grao(out, float(vis.get("grao") or 0), k)
-        for s in sobre:                        # imagens e textos por cima (centro em x, y; some e aparece suave)
+        for s in sobre:                        # imagens e textos por cima (centro em x, y; entrada e saída animadas)
             if not (s["ini"] <= t < s["fim"]):
                 continue
-            op = float(s.get("opacidade", 1.0))
-            if s.get("anim", "fade") == "fade":
-                op *= min(1.0, (t - s["ini"]) / 0.15, (s["fim"] - t) / 0.15)
-            ih, iw = s["img"].shape[:2]
-            colar(out, s["img"], s["alfa"] * op, int(round(s["x"] - iw / 2)), int(round(s["y"] - ih / 2)))
+            op, esc, dy, frac, modo = animacao(s, t)
+            img, al = s["img"], s["alfa"]
+            if frac < 1:                       # digitando: só os primeiros caracteres (o layout não muda)
+                n = texto_visivel(str(s.get("texto", "")), frac, modo)
+                if n not in s["parcial"]:
+                    s["parcial"][n] = texto_rgba(s, n)
+                img, al = s["parcial"][n]
+            if abs(esc - 1) > 1e-3:
+                nw, nh = max(2, int(img.shape[1] * esc)), max(2, int(img.shape[0] * esc))
+                img = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_AREA if esc < 1 else cv2.INTER_LINEAR)
+                al = cv2.resize(al, (nw, nh), interpolation=cv2.INTER_AREA if esc < 1 else cv2.INTER_LINEAR)
+                al = al if al.ndim == 3 else al[:, :, None]
+            if op <= 0.003:
+                continue
+            ih, iw = img.shape[:2]
+            colar(out, img, al * op, int(round(s["x"] - iw / 2)), int(round(s["y"] + dy - ih / 2)))
         if at:                                 # flash branco e fade pro preto
             out = visual.sobreposicao_cor(out, at)
         if vis.get("barra"):                   # barra de progresso (no tempo do vídeo final)

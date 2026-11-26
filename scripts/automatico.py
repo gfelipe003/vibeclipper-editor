@@ -27,7 +27,7 @@ RAIZ = os.path.dirname(AQUI)
 TRAB = os.path.join(RAIZ, "trabalho")
 SAIDA = os.path.join(RAIZ, "saida")
 PY = sys.executable
-ETAPAS = ["Baixando", "Transcrevendo", "Escolhendo os momentos", "Cortando", "Enquadrando", "Editando e renderizando",
+ETAPAS = ["Baixando", "Transcrevendo", "Escolhendo os momentos", "Cortando", "Enquadrando", "Legendando",
           "Pronto"]
 
 
@@ -185,7 +185,7 @@ def perguntar_api(tarefa, chave, sistema, pergunta, modelo):
     return "".join(b.text for b in msg.content if b.type == "text")
 
 
-def escolher(tarefa, T, titulo, n_cortes, gameplay, modelo):
+def escolher(tarefa, T, titulo, n_cortes, gameplay, modelo, orientacao=""):
     import config
     cfg = config.ler()
     modo, chave = cfg.get("VIBECLIPPER_IA", "auto"), cfg.get("ANTHROPIC_API_KEY")
@@ -210,7 +210,15 @@ def escolher(tarefa, T, titulo, n_cortes, gameplay, modelo):
     gp = {"sim": "É um vídeo de gameplay (jogo com a webcam do streamer).",
           "nao": "Não é gameplay (é conversa, podcast, aula ou parecido)."}.get(gameplay, (
           "Diga também se é gameplay: ponha no topo do JSON \"gameplay\": true (jogo com webcam do streamer) ou false."))
-    pergunta = (f"Título do vídeo: {titulo}\n{quantos}\n{gp}\n\nModelo do escolha.json:\n{modelo_json}\n\n"
+    orient = ""
+    if orientacao:
+        orient = ("\n\nORIENTAÇÃO DA PESSOA (vale mais que as regras gerais; siga o que ela pedir):\n"
+                  f"\"\"\"\n{orientacao}\n\"\"\"\n"
+                  "Os tempos que ela citar (ex.: 12:30, 1:02:10) são do vídeo original: ache as linhas pelo [h:mm:ss] de "
+                  "cada uma. Se ela pediu um trecho específico num corte, esse corte TEM que existir e cobrir o trecho, "
+                  "mesmo que fuja dos 30 a 75 s (ajuste o começo e o fim pra frase completa mais próxima); escreva no "
+                  "\"porque\" dele que veio da orientação. Os outros cortes seguem as regras normais.")
+    pergunta = (f"Título do vídeo: {titulo}\n{quantos}\n{gp}{orient}\n\nModelo do escolha.json:\n{modelo_json}\n\n"
                 f"Transcrição numerada (leia inteira):\n\n{numerada}")
     resp = perguntar(tarefa, sistema, pergunta, modelo)
     esc = json_da_resposta(resp)
@@ -230,7 +238,9 @@ def escolher(tarefa, T, titulo, n_cortes, gameplay, modelo):
         tarefa.etapa(2, f"ajustando {len(avisos)} corte(s) fora do tempo")
         resp = perguntar(tarefa, sistema, (
             "O validador avisou:\n" + "\n".join(avisos) + "\n\nCorrija SÓ esses cortes (mude linha_ini/linha_fim pra ficar "
-            "entre 30 e 75 s, ou tire o corte se não der) e devolva o escolha.json inteiro.\n\nSeu JSON anterior:\n"
+            "entre 30 e 75 s, ou tire o corte se não der) e devolva o escolha.json inteiro. "
+            + ("Um corte que cobre o trecho pedido na orientação da pessoa fica como está, mesmo fora do tempo.\n"
+               f"Orientação: {orientacao}\n" if orientacao else "") + "\n\nSeu JSON anterior:\n"
             + json.dumps(esc, ensure_ascii=False) + "\n\nTranscrição numerada:\n\n" + numerada), modelo)
         esc = json_da_resposta(resp)
     return esc
@@ -249,6 +259,9 @@ def main():
     ap.add_argument("--idioma", default="pt")
     ap.add_argument("--modelo", default=None, help="opus | sonnet (padrão: o das Configurações)")
     ap.add_argument("--tarefa", default=None)
+    ap.add_argument("--orientacao", default="", help="pedido livre da pessoa pra escolha (ex.: 'de 12:30 a 13:45 num corte')")
+    ap.add_argument("--renderizar", action="store_true",
+                    help="renderiza os MP4 finais no fim (sem isso, para pronto pra ajustar e renderizar no editor)")
     ap.add_argument("--mover", action="store_true", help="(arquivo) move em vez de copiar (o upload da página inicial)")
     a = ap.parse_args()
     if not a.modelo:
@@ -298,7 +311,11 @@ def main():
                        "--saida", os.path.join(T, "transcricao-numerada.md"), "--titulo", titulo])
         # 3. escolhe (Claude)
         tarefa.etapa(2, f"o Claude ({a.modelo}) está lendo a transcrição e escolhendo os momentos", 30)
-        esc = escolher(tarefa, T, titulo, a.cortes, a.gameplay, a.modelo)
+        orientacao = (a.orientacao or "").strip()
+        if orientacao:
+            open(os.path.join(T, "orientacao.txt"), "w", encoding="utf-8").write(orientacao + "\n")
+            tarefa.escrever(f"Orientação da pessoa: {orientacao}\n")
+        esc = escolher(tarefa, T, titulo, a.cortes, a.gameplay, a.modelo, orientacao)
         gameplay = a.gameplay == "sim" or (a.gameplay == "auto" and bool(esc.get("gameplay")))
         cs = json.load(open(os.path.join(T, "cortes.json"), encoding="utf-8"))["cortes"]
         tarefa.d.update(cortes=len(cs), gameplay=gameplay)
@@ -330,7 +347,9 @@ def main():
             rodar(tarefa, [PY, "scripts/efeitos.py", "--plano", os.path.join(P, "plano.json"), "--legenda",
                            os.path.join(P, "legenda.json"), "--saida", os.path.join(P, "sfx.json")])
         feitos = 0
-        for k in range(0, len(cs), 2):
+        if not a.renderizar:
+            tarefa.etapa(5, "legenda e efeitos prontos; o render fica pra você no editor", 98)
+        for k in (range(0, len(cs), 2) if a.renderizar else []):
             par = cs[k:k + 2]
             tarefa.etapa(5, "renderizando " + " e ".join(f"corte {c['n']}" for c in par) + f" ({feitos} de {len(cs)} prontos)",
                          65 + int(33 * feitos / max(1, len(cs))))
@@ -352,7 +371,8 @@ def main():
         rodar(tarefa, [PY, "scripts/escolher.py", "resumo", os.path.join(T, "cortes.json"), "--saida",
                        os.path.join(O, "cortes.md")])
         tarefa.d.update(estado="pronto", fim=time.time())
-        tarefa.etapa(6, f"{len(cs)} cortes prontos em saida/{slug}/", 100)
+        tarefa.etapa(6, f"{len(cs)} cortes prontos em saida/{slug}/" if a.renderizar else
+                     f"{len(cs)} cortes prontos pra ajustar: abra no editor e clique em Renderizar em cada um", 100)
     except Exception as e:                                                   # noqa: BLE001
         tarefa.d.update(estado="erro", erro=str(e), fim=time.time())
         tarefa.salvar()

@@ -47,6 +47,89 @@ fila_cv = threading.Condition()
 rodando = {}            # id -> Popen
 
 
+PRESETS = os.path.join(AQUI, "presets")                 # presets de mídia (valem pra todos os vídeos)
+PRESETS_ARQ = os.path.join(PRESETS, "presets.json")
+PRESETS_MIDIAS = os.path.join(PRESETS, "arquivos")      # cópias das imagens e áudios usados nos presets
+
+
+def presets_ler():
+    try:
+        return json.load(open(PRESETS_ARQ, encoding="utf-8")).get("presets", [])
+    except (OSError, ValueError):
+        return []
+
+
+def presets_gravar(lista):
+    os.makedirs(PRESETS, exist_ok=True)
+    tmp = PRESETS_ARQ + ".tmp"
+    json.dump({"presets": lista}, open(tmp, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    os.replace(tmp, PRESETS_ARQ)
+
+
+def preset_salvar(d):
+    """Guarda um ou mais itens de mídia (imagem, texto, áudio) com os tempos contados a partir do 1º item."""
+    import shutil
+    import uuid
+    nome = re.sub(r"\s+", " ", str(d.get("nome") or "")).strip()[:60]
+    itens = [dict(m) for m in (d.get("itens") or []) if m.get("tipo") in ("imagem", "texto", "audio")]
+    if not nome or not itens:
+        raise ValueError("dê um nome e escolha pelo menos uma mídia")
+    T = pasta_T(d.get("slug") or "")
+    base = min(float(m.get("t", 0) if m["tipo"] == "audio" else m.get("ini", 0)) for m in itens)
+    os.makedirs(PRESETS_MIDIAS, exist_ok=True)
+    for m in itens:
+        m.pop("id", None)
+        if m["tipo"] == "audio":
+            m["t"] = round(float(m.get("t", 0)) - base, 3)
+        else:
+            m["ini"], m["fim"] = round(float(m["ini"]) - base, 3), round(float(m["fim"]) - base, 3)
+        if m["tipo"] in ("imagem", "audio"):
+            src = os.path.join(T, "midias", os.path.basename(m.get("arquivo", "")))
+            if not os.path.isfile(src):
+                raise ValueError(f"arquivo não encontrado: {m.get('arquivo')}")
+            novo = uuid.uuid4().hex[:6] + "_" + os.path.basename(src)
+            shutil.copyfile(src, os.path.join(PRESETS_MIDIAS, novo))
+            m["arquivo"] = novo
+    p = {"id": uuid.uuid4().hex[:10], "nome": nome, "criado": time.time(), "itens": itens}
+    lista = presets_ler()
+    lista.append(p)
+    presets_gravar(lista)
+    return p
+
+
+def preset_aplicar(pid, slug):
+    """Copia os arquivos do preset pra pasta de mídia do vídeo e devolve os itens (tempos relativos)."""
+    import shutil
+    p = next((x for x in presets_ler() if x["id"] == pid), None)
+    if not p:
+        raise FileNotFoundError("preset não encontrado")
+    pasta = os.path.join(pasta_T(slug), "midias")
+    os.makedirs(pasta, exist_ok=True)
+    itens = []
+    for m in p["itens"]:
+        m = dict(m)
+        if m["tipo"] in ("imagem", "audio"):
+            src = os.path.join(PRESETS_MIDIAS, os.path.basename(m["arquivo"]))
+            dst = os.path.join(pasta, os.path.basename(m["arquivo"]))
+            if not os.path.exists(dst):
+                shutil.copyfile(src, dst)
+        itens.append(m)
+    return itens
+
+
+def preset_apagar(pid):
+    lista = presets_ler()
+    fora = [x for x in lista if x["id"] == pid]
+    lista = [x for x in lista if x["id"] != pid]
+    presets_gravar(lista)
+    usados = {m.get("arquivo") for x in lista for m in x["itens"]}
+    for x in fora:
+        for m in x["itens"]:
+            a = m.get("arquivo")
+            if a and a not in usados and os.path.isfile(os.path.join(PRESETS_MIDIAS, os.path.basename(a))):
+                os.remove(os.path.join(PRESETS_MIDIAS, os.path.basename(a)))
+
+
 def nome_seguro(nome, padrao="arquivo"):
     base, ext = os.path.splitext(os.path.basename(nome or padrao))
     base = re.sub(r"[^A-Za-z0-9_-]+", "-", base).strip("-")[:60] or padrao
@@ -130,6 +213,11 @@ def nova_tarefa(dados):
              "--cortes", str(max(0, min(12, int(dados.get("cortes") or 0)))),
              "--idioma", re.sub(r"[^a-z]", "", str(dados.get("idioma") or "pt"))[:5] or "pt",
              "--modelo", modelo_tarefa(dados.get("modelo")), "--tarefa", tid]
+    orientacao = re.sub(r"\s+", " ", str(dados.get("orientacao") or "")).strip()[:2000]
+    if orientacao:
+        args += ["--orientacao", orientacao]
+    if dados.get("renderizar") in (True, "sim"):
+        args += ["--renderizar"]
     os.makedirs(TAREFAS, exist_ok=True)
     d = {"id": tid, "origem": origem, "estado": "na fila", "etapa": 0, "msg": "esperando a vez", "progresso": 0,
          "inicio": time.time(), "slug": None, "titulo": None}
@@ -381,6 +469,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"projetos": ps, "inicial": ini, "lista": lista_projetos()})
             elif partes == ["api", "tarefas"]:
                 self._json({"tarefas": tarefas()})
+            elif partes == ["api", "presets"]:
+                self._json({"presets": presets_ler()})
+            elif partes[0] == "preset-arquivo" and len(partes) == 2:
+                arq = os.path.join(PRESETS_MIDIAS, os.path.basename(partes[1]))
+                self._arquivo(arq, TIPOS.get(os.path.splitext(arq)[1].lower(), "application/octet-stream"))
             elif partes == ["api", "config"]:
                 import config
                 import automatico
@@ -462,6 +555,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"ok": True, **config.publico()})
             if partes == ["api", "config", "testar"]:
                 return self._json(testar_chave(json.loads(corpo.decode("utf-8") or "{}")))
+            if partes == ["api", "presets"]:
+                return self._json(preset_salvar(json.loads(corpo.decode("utf-8") or "{}")))
+            if partes[:2] == ["api", "presets"] and len(partes) == 4 and SLUG.match(partes[2]):
+                if partes[3] == "apagar":
+                    preset_apagar(partes[2])
+                    return self._json({"ok": True})
+                if partes[3] == "usar":
+                    d = json.loads(corpo.decode("utf-8") or "{}")
+                    return self._json({"itens": preset_aplicar(partes[2], d.get("slug") or "")})
             if partes == ["api", "tarefa"]:
                 return self._json(nova_tarefa(json.loads(corpo.decode("utf-8") or "{}")))
             if partes[:2] == ["api", "tarefa"] and len(partes) == 4 and partes[3] == "cancelar" and SLUG.match(partes[2]):

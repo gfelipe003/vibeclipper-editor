@@ -145,8 +145,9 @@ O `edicao.json` também guarda (todos os tempos no tempo do corte original, ante
 - `remover`: `[[ini, fim], ...]` trechos tirados do corte (o render pula os quadros e o som; legenda e efeitos andam junto);
 - `facecam.chaves`: `[{"t", "x", "y", "larg"}]` facecam animada (x, y = canto de cima à esquerda no 1080x1920);
 - `midias`: imagens `{"tipo": "imagem", "arquivo", "ini", "fim", "x", "y" (centro), "larg", "opacidade"}`, textos
-  `{"tipo": "texto", "texto", "ini", "fim", "x", "y", "tam", "cor", "fundo", "cor_fundo"}` e áudios
+  `{"tipo": "texto", "texto", "ini", "fim", "x", "y", "tam", "cor", "fundo", "cor_fundo", "peso" (black|bold|normal), "italico", "contorno", "alinhamento" (esquerda|centro|direita)}`; imagem e texto têm `"entrada"`/`"saida"` (nenhuma|fade|subir|zoom, e no texto também letra|palavra) com `"dur_entrada"`/`"dur_saida"` em segundos e áudios
   `{"tipo": "audio", "arquivo", "t", "dur", "ini_arq", "volume_db"}`; os arquivos ficam em `T/midias/`.
+**Presets de mídia:** na aba Mídia, a pessoa guarda um item (ou todas as mídias do corte) como preset, que vale pra todos os vídeos. Ficam em `presets/presets.json` (mesmo formato dos itens de `midias`, com os tempos contados a partir do 1º item) e as imagens/áudios em `presets/arquivos/`; "Usar" copia os arquivos pra `T/midias/` e põe no tempo atual.
 Pedidos no chat como "dá um zoom em 12 s", "aumenta a facecam de 20 a 25 s", "tira de 5 a 8 s" ou "põe esse logo no começo"
 viram isso: mexa no `edicao.json` e renderize com o `edicao.py`.
 

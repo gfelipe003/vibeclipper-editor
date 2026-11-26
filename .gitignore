@@ -9,6 +9,10 @@ trabalho/
 saida/
 modelos/
 
+# ---- Seus presets de mídia (pessoais) e o estado do lançador ----
+presets/
+lancador/editor.pid
+
 # ---- Ambiente Python e caches ----
 .venv/
 venv/

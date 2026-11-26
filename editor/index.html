@@ -141,6 +141,7 @@ footer { border-top: 1px solid var(--linha); background: var(--s1); padding: 10p
   <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></symbol>
   <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
   <symbol id="i-go" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
   <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></symbol>
@@ -337,6 +338,12 @@ footer { border-top: 1px solid var(--linha); background: var(--s1); padding: 10p
             <input type="file" id="arqImg" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
             <input type="file" id="arqAudio" accept="audio/*,.mp3,.wav,.m4a,.ogg" hidden>
             <div class="nota-p" style="margin:10px 0 0">Arraste imagens e textos na prévia; na linha do tempo, arraste o bloco pra mudar quando aparece (as bordas mudam a duração).</div>
+          </div>
+          <div class="secao">
+            <div class="linha" style="justify-content:space-between;margin-bottom:8px"><b style="font-size:13px">Meus presets</b>
+              <button class="btn pequeno ghost" id="btPresetTudo" title="Guarda todas as mídias deste corte num preset só"><svg class="ic"><use href="#i-bookmark"/></svg>Salvar tudo como preset</button></div>
+            <div class="lista" id="listaPresets"></div>
+            <div class="nota-p" style="margin:8px 0 0">Valem pra todos os vídeos. "Usar" coloca o preset no tempo atual do vídeo.</div>
           </div>
           <div class="secao"><div class="lista" id="listaMidia"></div></div>
         </div>
@@ -653,24 +660,56 @@ function img(arq) {
 function caixaMidia(m) {      // retângulo (px do vertical 1080x1920) de imagem/texto
   if (m.tipo === "imagem") { const im = img(m.arquivo), ar = im.naturalWidth ? im.naturalHeight / im.naturalWidth : (m.h && m.w ? m.h / m.w : 1);
     const w = m.larg, h = w * ar; return { x: m.x - w / 2, y: m.y - h / 2, w, h }; }
-  if (m.tipo === "texto") { const linhas = String(m.texto || "").split("\n"); pctx.font = `${m.tam}px VCFonte, "Arial Black", sans-serif`;
-    const lw = Math.max(...linhas.map(l => pctx.measureText(l || " ").width)); const borda = Math.max(2, m.tam / 12);
-    const pad = m.fundo ? m.tam * 0.35 : borda + 2; const w = lw + 2 * pad + 2 * borda, h = m.tam * 1.2 * linhas.length + 2 * pad;
-    return { x: m.x - w / 2, y: m.y - h / 2, w, h, pad, lw, borda, linhas }; }
+  if (m.tipo === "texto") { const linhas = String(m.texto || "").split("\n"); pctx.font = fonteTexto(m, m.tam);
+    const larguras = linhas.map(l => pctx.measureText(l || " ").width), lw = Math.max(...larguras); const borda = Math.max(2, m.tam / 12);
+    const pad = m.fundo ? m.tam * 0.35 : borda + 2, extra = m.italico ? INCL * m.tam * 1.2 : 0;
+    const w = lw + 2 * pad + 2 * borda + extra, h = m.tam * 1.2 * linhas.length + 2 * pad;
+    return { x: m.x - w / 2, y: m.y - h / 2, w, h, pad, lw, borda, linhas, larguras, extra }; }
   return null;
 }
-function opacidadeEm(m, t) { let op = m.opacidade ?? 1; if ((m.anim || "fade") === "fade") op *= Math.min(1, (t - m.ini) / 0.15, (m.fim - t) / 0.15); return clamp(op, 0, 1); }
+// texto por cima: peso da fonte, itálico (inclinação igual à do render), entrada e saída animadas (= renderizar.animacao)
+const INCL = 0.2;
+function fonteTexto(m, px) { const p = m.peso || "black";
+  return p === "black" ? `${px}px VCFonte, "Arial Black", sans-serif` : `${p === "bold" ? 700 : 400} ${px}px Arial, sans-serif`; }
+function animsDe(m) { const legado = (m.anim || "fade") === "fade";
+  return { ent: m.entrada || (legado ? "fade" : "nenhuma"), sai: m.saida || (legado ? "fade" : "nenhuma") }; }
+const easeC = (p) => 1 - Math.pow(1 - p, 3), easeBack = (p) => { const c1 = 1.70158; return 1 + (c1 + 1) * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); };
+function animacaoMidia(m, t) {
+  const { ent, sai } = animsDe(m), dIn = Math.max(0.05, m.dur_entrada || 0.15), dOut = Math.max(0.05, m.dur_saida || 0.15);
+  const pIn = ent === "nenhuma" ? 1 : clamp((t - m.ini) / dIn, 0, 1), pOut = sai === "nenhuma" ? 1 : clamp((m.fim - t) / dOut, 0, 1);
+  let op = m.opacidade ?? 1, esc = 1, dy = 0, frac = 1, modo = "letra";
+  for (const [tipo, p, sinal] of [[ent, pIn, 1], [sai, pOut, -1]]) {
+    if (p >= 1 || tipo === "nenhuma") continue;
+    if (tipo === "fade") op *= p;
+    else if (tipo === "subir") { op *= p; dy += sinal * (1 - easeC(p)) * 90; }
+    else if (tipo === "zoom") { op *= Math.min(1, p * 2); esc *= Math.max(0.05, 0.4 + 0.6 * (sinal > 0 ? easeBack(p) : easeC(p))); }
+    else if (tipo === "letra" || tipo === "palavra") { if (m.tipo === "texto") { frac = Math.min(frac, p); modo = tipo; } else op *= p; }
+  }
+  return { op: clamp(op, 0, 1), esc, dy, frac, modo };
+}
+function textoVisivel(texto, frac, modo) {
+  if (frac >= 1) return texto.length;
+  if (modo === "palavra") { const fins = [...texto.matchAll(/\S+/g)].map(x => x.index + x[0].length); const k = Math.ceil(frac * fins.length - 1e-9); return k > 0 ? fins[k - 1] : 0; }
+  return Math.ceil(frac * texto.length - 1e-9);
+}
+function opacidadeEm(m, t) { return animacaoMidia(m, t).op; }
 function desenhaMidia(t) {
   for (const m of S.ed.midias || []) {
     if (m.tipo === "audio" || !(m.ini <= t && t < m.fim)) continue;
-    const b = caixaMidia(m), op = opacidadeEm(m, t); pctx.save(); pctx.globalAlpha = op;
+    const b = caixaMidia(m), an = animacaoMidia(m, t), op = an.op; pctx.save(); pctx.globalAlpha = op;
+    pctx.translate(m.x * K, (m.y + an.dy) * K); pctx.scale(an.esc, an.esc); pctx.translate(-m.x * K, -m.y * K);
     if (m.tipo === "imagem") { const im = img(m.arquivo); if (im.complete && im.naturalWidth) pctx.drawImage(im, b.x * K, b.y * K, b.w * K, b.h * K); }
     else {
       if (m.fundo) { pctx.fillStyle = m.cor_fundo || "#000"; pctx.globalAlpha = op * 0.9; pctx.beginPath(); pctx.roundRect(b.x * K, b.y * K, b.w * K, b.h * K, m.tam * 0.3 * K); pctx.fill(); pctx.globalAlpha = op; }
-      pctx.font = `${m.tam * K}px VCFonte, "Arial Black", sans-serif`; pctx.textAlign = "center"; pctx.textBaseline = "middle"; pctx.lineJoin = "round";
-      b.linhas.forEach((l, i) => { const yy = (b.y + b.pad + m.tam * 1.2 * (i + 0.5)) * K;
-        if (!m.fundo) { pctx.lineWidth = b.borda * 2 * K; pctx.strokeStyle = "#000"; pctx.strokeText(l, m.x * K, yy); }
-        pctx.fillStyle = m.cor || "#fff"; pctx.fillText(l, m.x * K, yy); });
+      pctx.font = fonteTexto(m, m.tam * K); pctx.textAlign = "left"; pctx.textBaseline = "middle"; pctx.lineJoin = "round";
+      const contorno = m.contorno ?? !m.fundo, alin = m.alinhamento || "centro", txt = String(m.texto || "");
+      let resta = textoVisivel(txt, an.frac, an.modo);
+      b.linhas.forEach((l, i) => { const yy = (b.y + b.pad + m.tam * 1.2 * (i + 0.5)) * K, wl = b.larguras[i];
+        const x0 = alin === "esquerda" ? b.x + b.pad + b.borda : alin === "direita" ? b.x + b.w - b.extra - b.pad - b.borda - wl : b.x + (b.w - b.extra - wl) / 2;
+        const parte = l.slice(0, Math.max(0, resta)); resta -= l.length + 1; if (!parte) return;
+        pctx.save(); if (m.italico) { const base = (b.y + b.pad + m.tam * 1.2 * (i + 1)) * K; pctx.transform(1, 0, -INCL, 1, INCL * base, 0); }
+        if (contorno) { pctx.lineWidth = b.borda * 2 * K; pctx.strokeStyle = "#000"; pctx.strokeText(parte, x0 * K, yy); }
+        pctx.fillStyle = m.cor || "#fff"; pctx.fillText(parte, x0 * K, yy); pctx.restore(); });
     }
     pctx.restore();
     if (sel.tipo === "midia" && S.ed.midias[sel.i] === m) { pctx.strokeStyle = "rgba(76,141,255,.9)"; pctx.setLineDash([6, 4]); pctx.lineWidth = 1.5; pctx.strokeRect(b.x * K, b.y * K, b.w * K, b.h * K); pctx.setLineDash([]);
@@ -1000,7 +1039,63 @@ function desenhaListaLeg() {
   });
   if (focoId) { const f = el.querySelector(`[data-id="${focoId}"]`); if (f) { f.focus(); if (f.type === "text") f.setSelectionRange(f.value.length, f.value.length); } }
 }
+// ---------- presets de mídia (guardados em presets/ da skill, valem pra todos os vídeos) ----------
+let presets = [];
+async function carregaPresets() { try { presets = (await api("/api/presets")).presets || []; } catch (e) { presets = []; } desenhaPresets(); }
+function desenhaPresets() {
+  const el = $("#listaPresets"); if (!el) return;
+  el.innerHTML = presets.length ? "" : `<div class="vazio">Nenhum preset ainda. Clique no marcador de um item ou em "Salvar tudo como preset".</div>`;
+  presets.forEach(p => {
+    const icones = p.itens.map(m => m.tipo === "audio" ? "♪" : m.tipo === "texto" ? "T" : "▣").join(" ");
+    const d = document.createElement("div"); d.className = "item";
+    d.innerHTML = `<div class="topo"><b title="${esc(p.itens.length + " item(ns)")}">${icones}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.nome)}">${esc(p.nome)}</span>
+      <button class="btn pequeno primario usar">Usar</button><button class="x icbt" title="Apagar preset"><svg class="ic"><use href="#i-x"/></svg></button></div>`;
+    d.querySelector(".usar").onclick = () => usarPreset(p);
+    d.querySelector(".x").onclick = async () => { if (!confirm(`Apagar o preset "${p.nome}"? (as mídias já colocadas nos vídeos continuam)`)) return;
+      await api(`/api/presets/${p.id}/apagar`, { method: "POST" }); carregaPresets(); };
+    el.appendChild(d);
+  });
+}
+async function salvarPreset(itens, sugestao) {
+  if (!itens.length) return estado("não há mídia neste corte pra salvar", "erro");
+  const nome = prompt("Nome do preset:", sugestao || ""); if (!nome || !nome.trim()) return;
+  try { await api("/api/presets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome: nome.trim(), slug: S.slug, itens }) });
+    await carregaPresets(); estado(`preset "${nome.trim()}" salvo ✓`, "ok"); }
+  catch (e) { estado("erro ao salvar o preset: " + e.message, "erro"); }
+}
+async function usarPreset(p) {
+  try {
+    const { itens } = await api(`/api/presets/${p.id}/usar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: S.slug }) });
+    const antes = antesDe(), t = v.currentTime, dur = S.plano.dur; S.ed.midias = S.ed.midias || [];
+    for (const m of itens) {
+      m.id = uid();
+      if (m.tipo === "audio") m.t = +clamp(t + (m.t || 0), 0, dur).toFixed(2);
+      else { const len = Math.max(0.1, m.fim - m.ini); m.ini = +clamp(t + m.ini, 0, dur - 0.1).toFixed(2); m.fim = +Math.min(dur, m.ini + len).toFixed(2); }
+      S.ed.midias.push(m);
+    }
+    sel = { tipo: "midia", i: S.ed.midias.length - 1 }; midiaAssinatura = ""; confirma(antes); estado(`preset "${p.nome}" colocado em ${fmt(t)} s`, "ok");
+  } catch (e) { estado("erro ao usar o preset: " + e.message, "erro"); }
+}
 let midiaAssinatura = "";
+function selectMidia(campo, id, valor, opcoes) {
+  return `<select data-id="${campo}${id}" style="padding:4px 24px 4px 8px;border-radius:8px">${opcoes.map(([v_, r]) => `<option value="${v_}" ${v_ === valor ? "selected" : ""}>${r}</option>`).join("")}</select>`;
+}
+const ANIMS = [["nenhuma", "Nenhuma"], ["fade", "Fade"], ["subir", "Deslizar"], ["zoom", "Zoom (pop)"]];
+const ANIMS_TEXTO = [...ANIMS, ["letra", "Letra por letra"], ["palavra", "Palavra por palavra"]];
+function blocoAnim(m) {
+  const { ent, sai } = animsDe(m), ops = m.tipo === "texto" ? ANIMS_TEXTO : ANIMS;
+  const dur = (campo, val) => `<input type="number" min="0.05" max="10" step="0.05" value="${(val || 0.15).toFixed(2)}" data-id="${campo}${m.id}" title="duração (s)" style="width:64px"><span class="tag">s</span>`;
+  return `<div class="linha" style="margin:6px 0 4px;gap:6px"><span class="tag" style="min-width:52px">entrada</span>${selectMidia("ent", m.id, ent, ops)}${ent !== "nenhuma" ? dur("dent", m.dur_entrada) : ""}</div>
+    <div class="linha" style="margin:0 0 4px;gap:6px"><span class="tag" style="min-width:52px">saída</span>${selectMidia("sai", m.id, sai, ops)}${sai !== "nenhuma" ? dur("dsai", m.dur_saida) : ""}</div>`;
+}
+function ligaAnim(d, m) {
+  const fixa = () => { const a = animsDe(m); m.entrada = a.ent; m.saida = a.sai; m.dur_entrada = m.dur_entrada || 0.15; m.dur_saida = m.dur_saida || 0.15; };
+  const lento = (tipo, dur) => (tipo === "letra" || tipo === "palavra") && dur < 0.5 ? 0.8 : dur;
+  d.querySelector(`[data-id="ent${m.id}"]`).onchange = (e) => { fixa(); m.entrada = e.target.value; m.dur_entrada = lento(m.entrada, m.dur_entrada); mudou(); };
+  d.querySelector(`[data-id="sai${m.id}"]`).onchange = (e) => { fixa(); m.saida = e.target.value; m.dur_saida = lento(m.saida, m.dur_saida); mudou(); };
+  const de = d.querySelector(`[data-id="dent${m.id}"]`); if (de) de.onchange = () => { fixa(); m.dur_entrada = clamp(+de.value || 0.15, 0.05, 10); mudou(); };
+  const ds = d.querySelector(`[data-id="dsai${m.id}"]`); if (ds) ds.onchange = () => { fixa(); m.dur_saida = clamp(+ds.value || 0.15, 0.05, 10); mudou(); };
+}
 function desenhaListaMidia() {
   const ms = S.ed.midias || [], assin = JSON.stringify([ms, sel]);
   if (assin === midiaAssinatura) return; midiaAssinatura = assin;
@@ -1011,18 +1106,24 @@ function desenhaListaMidia() {
     const icone = m.tipo === "audio" ? "♪" : m.tipo === "texto" ? "T" : "▣";
     let corpo = "";
     if (m.tipo === "audio") {
-      corpo = `<div class="topo"><b>${icone}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.nome || m.arquivo)}</span><button class="icbt ir"><svg class="ic"><use href="#i-go"/></svg></button><button class="x icbt"><svg class="ic"><use href="#i-x"/></svg></button></div>
+      corpo = `<div class="topo"><b>${icone}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.nome || m.arquivo)}</span><button class="icbt salvarp" title="Salvar como preset"><svg class="ic"><use href="#i-bookmark"/></svg></button><button class="icbt ir"><svg class="ic"><use href="#i-go"/></svg></button><button class="x icbt"><svg class="ic"><use href="#i-x"/></svg></button></div>
         <div class="linha" style="margin-bottom:6px"><span class="tag">começa</span>${inputNum(m.t, 0.1, "começa em (s)", 0)}
         <span class="tag">dura</span>${inputNum(m.dur ?? "", 0.1, "duração (vazio = até acabar)", 0)}<span class="tag">pula</span>${inputNum(m.ini_arq || 0, 0.1, "começar do segundo X do áudio", 0)}</div>
         <div class="campo" style="margin:0"><label><span>Volume</span><span>${(m.volume_db ?? -6).toFixed(0)} dB</span></label><input type="range" min="-30" max="6" step="1" value="${m.volume_db ?? -6}" data-id="vol${m.id}"></div>`;
     } else {
-      corpo = `<div class="topo"><b>${icone}</b>${inputNum(m.ini.toFixed(2), 0.05, "aparece (s)", 0)} – ${inputNum(m.fim.toFixed(2), 0.05, "some (s)", 0)}<button class="icbt ir"><svg class="ic"><use href="#i-go"/></svg></button><button class="x icbt"><svg class="ic"><use href="#i-x"/></svg></button></div>` +
+      corpo = `<div class="topo"><b>${icone}</b>${inputNum(m.ini.toFixed(2), 0.05, "aparece (s)", 0)} – ${inputNum(m.fim.toFixed(2), 0.05, "some (s)", 0)}<button class="icbt salvarp" title="Salvar como preset"><svg class="ic"><use href="#i-bookmark"/></svg></button><button class="icbt ir"><svg class="ic"><use href="#i-go"/></svg></button><button class="x icbt"><svg class="ic"><use href="#i-x"/></svg></button></div>` +
         (m.tipo === "texto" ? `<textarea data-id="txt${m.id}" rows="2"></textarea>
           <div class="linha" style="margin:6px 0"><span class="tag">cor</span><input type="color" value="${m.cor || "#ffffff"}" data-id="cor${m.id}">
           <label class="linha" style="color:var(--fraco)"><input type="checkbox" ${m.fundo ? "checked" : ""} data-id="fundo${m.id}"> fundo</label>
           <input type="color" value="${m.cor_fundo || "#000000"}" data-id="corf${m.id}" ${m.fundo ? "" : "disabled"}></div>
-          <div class="campo" style="margin:0"><label><span>Tamanho</span><span>${m.tam} px</span></label><input type="range" min="30" max="220" step="2" value="${m.tam}" data-id="tam${m.id}"></div>`
+          <div class="campo" style="margin:0"><label><span>Tamanho</span><span>${m.tam} px</span></label><input type="range" min="30" max="220" step="2" value="${m.tam}" data-id="tam${m.id}"></div>
+          <div class="linha" style="margin:6px 0;flex-wrap:wrap;gap:6px"><span class="tag">fonte</span>${selectMidia("peso", m.id, m.peso || "black", [["black", "Extra forte"], ["bold", "Negrito"], ["normal", "Normal"]])}
+            <label class="linha" style="color:var(--fraco)"><input type="checkbox" ${m.italico ? "checked" : ""} data-id="ital${m.id}"> <i>itálico</i></label>
+            <label class="linha" style="color:var(--fraco)"><input type="checkbox" ${(m.contorno ?? !m.fundo) ? "checked" : ""} data-id="cont${m.id}"> contorno</label></div>
+          <div class="linha" style="margin:0 0 6px;gap:4px"><span class="tag">alinhar</span>${[["esquerda", "⯇ Esquerda"], ["centro", "Centro"], ["direita", "Direita ⯈"]].map(([v_, r]) =>
+            `<button class="btn pequeno ${(m.alinhamento || "centro") === v_ ? "primario" : "ghost"}" data-alin="${v_}" style="flex:1">${r}</button>`).join("")}</div>`
         : `<div class="nota-p" style="margin:0 0 6px">${esc(m.nome || m.arquivo)}</div><div class="campo" style="margin:0 0 6px"><label><span>Largura</span><span>${Math.round(m.larg)} px</span></label><input type="range" min="40" max="1080" step="2" value="${m.larg}" data-id="larg${m.id}"></div>`) +
+        blocoAnim(m) +
         `<div class="campo" style="margin:6px 0 0"><label><span>Opacidade</span><span>${Math.round((m.opacidade ?? 1) * 100)}%</span></label><input type="range" min="0.1" max="1" step="0.05" value="${m.opacidade ?? 1}" data-id="op${m.id}"></div>`;
     }
     d.innerHTML = corpo;
@@ -1042,11 +1143,18 @@ function desenhaListaMidia() {
         d.querySelector(`[data-id="fundo${m.id}"]`).onchange = (e) => { m.fundo = e.target.checked; mudou(); };
         d.querySelector(`[data-id="corf${m.id}"]`).oninput = (e) => { m.cor_fundo = e.target.value; mudou(); };
         const tm = d.querySelector(`[data-id="tam${m.id}"]`); tm.oninput = () => { m.tam = +tm.value; mudou(); };
-      } else { const lg = d.querySelector(`[data-id="larg${m.id}"]`); lg.oninput = () => { m.larg = +lg.value; mudou(); }; }
+        d.querySelector(`[data-id="peso${m.id}"]`).onchange = (e) => { m.peso = e.target.value; mudou(); };
+        d.querySelector(`[data-id="ital${m.id}"]`).onchange = (e) => { m.italico = e.target.checked; mudou(); };
+        d.querySelector(`[data-id="cont${m.id}"]`).onchange = (e) => { m.contorno = e.target.checked; mudou(); };
+        d.querySelectorAll("[data-alin]").forEach(bt => bt.onclick = () => { m.alinhamento = bt.dataset.alin; mudou(); });
+      }
+      ligaAnim(d, m);
+      if (m.tipo === "imagem") { const lg = d.querySelector(`[data-id="larg${m.id}"]`); lg.oninput = () => { m.larg = +lg.value; mudou(); }; }
     }
+    d.querySelector(".salvarp").onclick = () => salvarPreset([m], m.tipo === "texto" ? String(m.texto || "").split("\n")[0].slice(0, 30) : (m.nome || m.arquivo || "").replace(/\.[^.]+$/, ""));
     d.querySelector(".ir").onclick = () => { v.currentTime = (m.tipo === "audio" ? m.t : m.ini) + 0.01; sel = { tipo: "midia", i }; midiaAssinatura = ""; desenhaListaMidia(); };
     d.querySelector(".x").onclick = () => { ms.splice(i, 1); sel = { tipo: null, i: -1 }; mudou(); };
-    d.onclick = (e) => { if (["INPUT", "BUTTON", "TEXTAREA"].includes(e.target.tagName)) return; sel = { tipo: "midia", i }; midiaAssinatura = ""; desenhaListaMidia(); };
+    d.onclick = (e) => { if (["INPUT", "BUTTON", "TEXTAREA", "SELECT", "OPTION"].includes(e.target.tagName) || e.target.closest("button, label")) return; sel = { tipo: "midia", i }; midiaAssinatura = ""; desenhaListaMidia(); };
     el.appendChild(d);
   });
   if (focoId) { const f = el.querySelector(`[data-id="${focoId}"]`); if (f) { f.focus(); if (f.setSelectionRange && (f.type === "text" || f.tagName === "TEXTAREA")) f.setSelectionRange(f.value.length, f.value.length); } }
@@ -1283,7 +1391,7 @@ $("#arqImg").onchange = async () => {
   const f = $("#arqImg").files[0]; $("#arqImg").value = ""; if (!f) return;
   try { const j = await enviarMidia(f), antes = antesDe(), t = v.currentTime; S.ed.midias = S.ed.midias || [];
     const larg = Math.min(500, j.w || 500);
-    S.ed.midias.push({ id: uid(), tipo: "imagem", arquivo: j.arquivo, nome: f.name, w: j.w, h: j.h, ini: +t.toFixed(2), fim: +Math.min(S.plano.dur, t + 3).toFixed(2), x: 540, y: 620, larg, opacidade: 1, anim: "fade" });
+    S.ed.midias.push({ id: uid(), tipo: "imagem", arquivo: j.arquivo, nome: f.name, w: j.w, h: j.h, ini: +t.toFixed(2), fim: +Math.min(S.plano.dur, t + 3).toFixed(2), x: 540, y: 620, larg, opacidade: 1, anim: "fade", entrada: "fade", saida: "fade", dur_entrada: 0.3, dur_saida: 0.3 });
     sel = { tipo: "midia", i: S.ed.midias.length - 1 }; abrirAba("midia"); confirma(antes);
   } catch (e) { estado("erro: " + e.message, "erro"); }
 };
@@ -1294,9 +1402,12 @@ $("#arqAudio").onchange = async () => {
     sel = { tipo: "midia", i: S.ed.midias.length - 1 }; abrirAba("midia"); confirma(antes);
   } catch (e) { estado("erro: " + e.message, "erro"); }
 };
+$("#btPresetTudo").onclick = () => salvarPreset(JSON.parse(JSON.stringify(S.ed.midias || [])), "");
+carregaPresets();
 $("#btAddTexto").onclick = () => {
   const antes = antesDe(), t = v.currentTime; S.ed.midias = S.ed.midias || [];
-  S.ed.midias.push({ id: uid(), tipo: "texto", texto: "SEU TEXTO", ini: +t.toFixed(2), fim: +Math.min(S.plano.dur, t + 3).toFixed(2), x: 540, y: 300, tam: 90, cor: "#FFFFFF", fundo: false, cor_fundo: "#000000", opacidade: 1, anim: "fade" });
+  S.ed.midias.push({ id: uid(), tipo: "texto", texto: "SEU TEXTO", ini: +t.toFixed(2), fim: +Math.min(S.plano.dur, t + 3).toFixed(2), x: 540, y: 300, tam: 90, cor: "#FFFFFF", fundo: false, cor_fundo: "#000000", opacidade: 1, anim: "fade",
+    peso: "black", italico: false, alinhamento: "centro", entrada: "fade", saida: "fade", dur_entrada: 0.3, dur_saida: 0.3 });
   sel = { tipo: "midia", i: S.ed.midias.length - 1 }; abrirAba("midia"); confirma(antes);
 };
 
