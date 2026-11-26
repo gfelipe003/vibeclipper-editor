@@ -109,7 +109,7 @@ pre.log { background: var(--s0); border: 1px solid var(--linha); border-radius: 
     <div class="nota" id="maisAviso" style="color:var(--acento);margin:0 0 10px"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" id="maisCancelar">Cancelar</button><button class="btn primario" id="maisIr">＋ Buscar mais cortes</button></div>
   </dialog>
-  <section class="card"><div class="card-t"><div><h2>Seus vídeos</h2><p>Abra um vídeo pra ajustar os cortes no editor.</p></div></div><div class="grade" id="grade"></div></section>
+  <section class="card"><div class="card-t"><div><h2>Seus vídeos</h2><p>Abra um vídeo pra ajustar os cortes no editor.</p></div><button class="btn pequeno perigo" id="btLimpar" style="display:none" title="Apaga todos os vídeos e cortes pra liberar espaço (presets e configurações ficam)">🗑 Limpar tudo</button></div><div class="grade" id="grade"></div></section>
 </div>
 <script>
 "use strict";
@@ -177,15 +177,33 @@ async function atualizar() {
     const g = $("#grade");
     g.innerHTML = lista.length ? lista.map(p => `<div class="video"><div class="mini" style="background-image:${p.miniatura ? `url('/miniatura/${encodeURIComponent(p.slug)}')` : "none"}"><span class="selo contador${p.prontos === p.cortes && p.cortes ? " ok" : ""}">${p.prontos}/${p.cortes} cortes</span></div>
       <div class="info"><div class="t" title="${esc(p.titulo)}">${esc(p.titulo)}</div>
-      <div class="m">${p.prontos} de ${p.cortes} cortes prontos · ${new Date(p.quando * 1000).toLocaleDateString("pt-BR")}</div>
+      <div class="m">${p.prontos} de ${p.cortes} cortes prontos · ${new Date(p.quando * 1000).toLocaleDateString("pt-BR")} · ${tam(p.tamanho)}</div>
       <div class="acoes"><a class="btn primario pequeno" href="/editar?v=${encodeURIComponent(p.slug)}">Editar</a>
       <button class="btn pequeno mais" data-slug="${esc(p.slug)}" data-titulo="${esc(p.titulo)}" data-cortes="${p.cortes}" title="Procurar outros momentos neste vídeo, sem repetir os cortes que já existem">＋ Mais cortes</button>
-      <button class="btn pequeno ghost pasta" data-slug="${esc(p.slug)}" title="Abrir pasta">📁</button></div></div></div>`).join("")
+      <button class="btn pequeno ghost pasta" data-slug="${esc(p.slug)}" title="Abrir pasta">📁</button>
+      <button class="btn pequeno ghost apagar" data-slug="${esc(p.slug)}" data-titulo="${esc(p.titulo)}" data-tam="${p.tamanho || 0}" title="Apagar este vídeo">🗑</button></div></div></div>`).join("")
       : `<div class="vazio">Nenhum vídeo ainda. Mande um link ou arquivo aí em cima.</div>`;
     g.querySelectorAll(".pasta").forEach(b => b.onclick = () => api(`/api/abrir-pasta/${encodeURIComponent(b.dataset.slug)}`, { method: "POST" }));
+    g.querySelectorAll(".apagar").forEach(b => b.onclick = async () => {
+      if (!confirm(`Apagar o vídeo "${b.dataset.titulo}"?\n\nSome tudo dele: cortes prontos, edições, textos e thumbs do ChatGPT (${tam(+b.dataset.tam)}).\nIsso NÃO dá pra desfazer.`)) return;
+      try { const r = await api(`/api/apagar-video/${encodeURIComponent(b.dataset.slug)}`, { method: "POST" }); avisoLimpeza(`Vídeo apagado: ${tam(r.liberado)} liberados.`); }
+      catch (e) { avisoLimpeza("Não deu pra apagar: " + e.message, true); }
+      atualizar();
+    });
+    const total = lista.reduce((s, p) => s + (p.tamanho || 0), 0);
+    $("#btLimpar").style.display = lista.length ? "" : "none"; $("#btLimpar").textContent = `🗑 Limpar tudo (${tam(total)})`;
+    $("#btLimpar").onclick = async () => {
+      if (!confirm(`Apagar TODOS os ${lista.length} vídeo(s) e os cortes deles (${tam(total)})?\n\nSome tudo: cortes prontos, edições, textos e thumbs do ChatGPT. Presets e Configurações continuam.\nIsso NÃO dá pra desfazer.`)) return;
+      try { const r = await api("/api/limpar-tudo", { method: "POST" });
+        avisoLimpeza(`${tam(r.liberado)} liberados.` + (r.erros && r.erros.length ? " Não deu pra apagar: " + r.erros.join(" | ") : ""), !!(r.erros && r.erros.length)); }
+      catch (e) { avisoLimpeza("Não deu pra limpar: " + e.message, true); }
+      atualizar();
+    };
     g.querySelectorAll(".mais").forEach(b => b.onclick = () => abrirMais(b.dataset.slug, b.dataset.titulo, +b.dataset.cortes));
   } catch (e) { console.error(e); }
 }
+function tam(b) { b = +b || 0; return b >= 1073741824 ? (b / 1073741824).toFixed(1).replace(".", ",") + " GB" : Math.max(1, Math.round(b / 1048576)) + " MB"; }
+function avisoLimpeza(msg, erro) { const a = $("#aviso"); a.textContent = msg; a.style.color = erro ? "var(--acento)" : "var(--verde)"; window.scrollTo({ top: 0, behavior: "smooth" }); }
 // ---------- mais cortes de um vídeo que já foi processado ----------
 let maisSlug = null;
 function abrirMais(slug, titulo, n) {

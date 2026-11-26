@@ -282,6 +282,58 @@ def testar_chave(d):
         return {"ok": False, "msg": f"erro {e.status_code}: {e.message}"}
 
 
+def tamanho_pasta(p):
+    total = 0
+    for raiz, _, arqs in os.walk(p):
+        for a in arqs:
+            try:
+                total += os.path.getsize(os.path.join(raiz, a))
+            except OSError:
+                pass
+    return total
+
+
+def apagar_projeto(slug):
+    """Apaga um vídeo inteiro: trabalho/<slug> e saida/<slug> (e as tarefas já terminadas dele). Devolve os bytes liberados."""
+    import shutil
+    import stat
+    if not SLUG.match(slug) or slug.startswith("_"):
+        raise ValueError("nome de vídeo inválido")
+    for d in tarefas():
+        if d.get("slug") == slug and d.get("estado") in ("rodando", "na fila"):
+            raise ValueError("esse vídeo está sendo processado agora; cancele ou espere terminar")
+    for (s, _n), st in list(estados.items()):
+        if s == slug and st.get("estado") == "renderizando":
+            raise ValueError("um corte desse vídeo está renderizando; espere terminar")
+    falhas = []
+
+    def tenta_de_novo(func, caminho, _exc):                    # arquivo só-leitura no Windows: libera e tenta de novo
+        try:
+            os.chmod(caminho, stat.S_IWRITE)
+            func(caminho)
+        except OSError:
+            falhas.append(caminho)
+    liberado = 0
+    for base in (TRAB, SAIDA):
+        p = os.path.join(base, slug)
+        if os.path.isdir(p):
+            liberado += tamanho_pasta(p)
+            shutil.rmtree(p, onerror=tenta_de_novo)
+    for f in os.listdir(TAREFAS) if os.path.isdir(TAREFAS) else []:
+        if f.endswith(".json"):
+            d = ler(os.path.join(TAREFAS, f), {}) or {}
+            if d.get("slug") == slug:
+                for ext in (".json", ".log"):
+                    try:
+                        os.remove(os.path.join(TAREFAS, f[:-5] + ext))
+                    except OSError:
+                        pass
+    if falhas:
+        raise ValueError(f"não consegui apagar {len(falhas)} arquivo(s) (talvez abertos em outro programa). "
+                         "Feche o que estiver usando e tente de novo")
+    return liberado
+
+
 def lista_projetos():
     out = []
     for s in projetos():
@@ -291,6 +343,7 @@ def lista_projetos():
         prontos = sum(os.path.exists(os.path.join(SAIDA, s, f"corte-{c['n']}.mp4")) for c in cs)
         out.append({"slug": s, "titulo": info.get("title") or s, "cortes": len(cs), "prontos": prontos,
                     "miniatura": os.path.exists(os.path.join(T, "miniatura.jpg")),
+                    "tamanho": tamanho_pasta(T) + tamanho_pasta(os.path.join(SAIDA, s)),
                     "quando": os.path.getmtime(os.path.join(T, "cortes.json"))})
     return out
 
@@ -642,6 +695,24 @@ class Handler(BaseHTTPRequestHandler):
                         return self._json({"ok": False, "msg": "já está renderizando"})
                     threading.Thread(target=renderizar_bg, args=(slug, n), daemon=True).start()
                 return self._json({"ok": True})
+            if partes[:2] == ["api", "apagar-video"] and len(partes) == 3:
+                return self._json({"ok": True, "liberado": apagar_projeto(partes[2])})
+            if partes == ["api", "limpar-tudo"]:
+                liberado, erros = 0, []
+                for s in projetos():
+                    try:
+                        liberado += apagar_projeto(s)
+                    except ValueError as e:
+                        erros.append(f"{s}: {e}")
+                up = 0
+                if os.path.isdir(UPLOADS):                                  # envios que sobraram de tarefas que falharam
+                    for f in os.listdir(UPLOADS):
+                        try:
+                            up += os.path.getsize(os.path.join(UPLOADS, f))
+                            os.remove(os.path.join(UPLOADS, f))
+                        except OSError:
+                            pass
+                return self._json({"ok": not erros, "liberado": liberado + up, "erros": erros})
             if partes[:2] == ["api", "abrir-pasta"] and len(partes) == 3:
                 pasta_T(partes[2])                                          # valida o nome
                 p = os.path.join(SAIDA, partes[2])
