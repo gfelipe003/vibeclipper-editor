@@ -195,7 +195,15 @@ def nova_tarefa(dados):
     tid = time.strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:4]
     url = (dados.get("url") or "").strip()
     up = dados.get("upload")
-    if url:
+    mais = (dados.get("mais") or "").strip()
+    if mais:
+        T = pasta_T(mais)                                                  # valida o nome
+        for d in tarefas():
+            if d.get("slug") == mais and d.get("estado") in ("rodando", "na fila"):
+                raise ValueError("esse vídeo já está sendo processado; espere terminar")
+        args = ["--mais", mais]
+        origem = (ler(os.path.join(T, "info.json"), {}) or {}).get("title") or mais
+    elif url:
         if not re.match(r"^https?://", url):
             raise ValueError("cole um link que comece com http:// ou https://")
         args = ["--url", url]
@@ -220,7 +228,7 @@ def nova_tarefa(dados):
         args += ["--renderizar"]
     os.makedirs(TAREFAS, exist_ok=True)
     d = {"id": tid, "origem": origem, "estado": "na fila", "etapa": 0, "msg": "esperando a vez", "progresso": 0,
-         "inicio": time.time(), "slug": None, "titulo": None}
+         "inicio": time.time(), "slug": mais or None, "titulo": ("Mais cortes: " + origem) if mais else None}
     json.dump(d, open(os.path.join(TAREFAS, f"{tid}.json"), "w", encoding="utf-8"), ensure_ascii=False)
     with fila_cv:
         fila.append((tid, args))
@@ -469,6 +477,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"projetos": ps, "inicial": ini, "lista": lista_projetos()})
             elif partes == ["api", "tarefas"]:
                 self._json({"tarefas": tarefas()})
+            elif partes[:2] == ["api", "chatgpt"] and len(partes) == 4:
+                import chatgpt
+                import config
+                T = pasta_T(partes[2])
+                self._json({**chatgpt.historico(T, int(partes[3])), "tem_chave": bool(config.ler().get("OPENAI_API_KEY"))})
+            elif partes[0] == "chatgpt-arq" and len(partes) == 4:
+                arq = os.path.join(pasta_T(partes[1]), f"corte-{int(partes[2])}", "chatgpt", os.path.basename(partes[3]))
+                self._arquivo(arq, TIPOS.get(os.path.splitext(arq)[1].lower(), "application/octet-stream"))
             elif partes == ["api", "presets"]:
                 self._json({"presets": presets_ler()})
             elif partes[0] == "preset-arquivo" and len(partes) == 2:
@@ -553,6 +569,42 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json({"erro": "modelo inválido"}, 400)
                 config.salvar({k: v for k, v in d.items() if k in config.CHAVES})
                 return self._json({"ok": True, **config.publico()})
+            if partes == ["api", "config", "testar-openai"]:
+                import chatgpt
+                d = json.loads(corpo.decode("utf-8") or "{}")
+                try:
+                    return self._json(chatgpt.testar(d.get("chave") or chatgpt.chave()))
+                except chatgpt.Erro as e:
+                    return self._json({"ok": False, "msg": str(e)})
+            if partes[:2] == ["api", "chatgpt"] and len(partes) == 5:              # aba ChatGPT do editor
+                import chatgpt
+                T, n, acao = pasta_T(partes[2]), int(partes[3]), partes[4]
+                if not os.path.isdir(os.path.join(T, f"corte-{n}")):
+                    raise FileNotFoundError(f"corte {n}")
+                try:
+                    if acao == "ref":
+                        if len(corpo) > 25 * 1024 * 1024:
+                            return self._json({"erro": "imagem grande demais (máximo 25 MB)"}, 400)
+                        return self._json(chatgpt.salvar_ref(T, n, (q.get("nome") or ["ref.png"])[0], corpo))
+                    d = json.loads(corpo.decode("utf-8") or "{}")
+                    if acao == "textos":
+                        return self._json(chatgpt.gerar_textos(T, n, str(d.get("pedido") or "")[:2000]))
+                    if acao == "thumb":
+                        return self._json(chatgpt.gerar_thumb(
+                            T, n, str(d.get("pedido") or "")[:2000], [str(x) for x in (d.get("refs") or [])][:10],
+                            d.get("formato") or "vertical", d.get("qualidade") or "medium", bool(d.get("base_ultima"))))
+                    if acao == "print":
+                        return self._json(chatgpt.print_momento(T, n, float(d.get("t") or 0)))
+                    if acao == "tirar-ref":
+                        return self._json(chatgpt.tirar_ref(T, n, os.path.basename(str(d.get("arquivo") or ""))))
+                    if acao == "resultado":                                # a pessoa editou o título/descrição/tags
+                        h = chatgpt.historico(T, n)
+                        h["resultado"] = {"titulo": str(d.get("titulo") or ""), "descricao": str(d.get("descricao") or ""),
+                                          "tags": [str(t) for t in (d.get("tags") or [])][:30]}
+                        chatgpt.gravar(T, n, h)
+                        return self._json(h)
+                except chatgpt.Erro as e:
+                    return self._json({"erro": str(e)}, 400)
             if partes == ["api", "config", "testar"]:
                 return self._json(testar_chave(json.loads(corpo.decode("utf-8") or "{}")))
             if partes == ["api", "presets"]:

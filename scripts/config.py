@@ -7,13 +7,16 @@ O .env fica SÓ no computador da pessoa: ele está no .gitignore e nunca vai pro
   VIBECLIPPER_IA       quem escolhe os momentos: auto (padrão) | api | claude_code
   VIBECLIPPER_MODELO   modelo padrão pra escolher: opus (padrão) | sonnet
   VIBECLIPPER_CLAUDE   caminho do Claude Code, se ele não for achado sozinho (opcional)
+  OPENAI_API_KEY       chave da API da OpenAI (platform.openai.com), pro ChatGPT: título, descrição, tags e thumb
+  OPENAI_MODELO_TEXTO  / OPENAI_MODELO_IMAGEM: modelos da OpenAI (vazio = o melhor que a chave tiver)
 """
 import os
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARQ = os.path.join(RAIZ, ".env")
-CHAVES = ("ANTHROPIC_API_KEY", "ELEVENLABS_API_KEY", "VIBECLIPPER_IA", "VIBECLIPPER_MODELO", "VIBECLIPPER_CLAUDE")
-SEGREDOS = ("ANTHROPIC_API_KEY", "ELEVENLABS_API_KEY")
+CHAVES = ("ANTHROPIC_API_KEY", "ELEVENLABS_API_KEY", "VIBECLIPPER_IA", "VIBECLIPPER_MODELO", "VIBECLIPPER_CLAUDE",
+          "OPENAI_API_KEY", "OPENAI_MODELO_TEXTO", "OPENAI_MODELO_IMAGEM")
+SEGREDOS = ("ANTHROPIC_API_KEY", "ELEVENLABS_API_KEY", "OPENAI_API_KEY")
 PADRAO = {"VIBECLIPPER_IA": "auto", "VIBECLIPPER_MODELO": "opus"}
 # os IDs exatos dos modelos da API do Claude
 MODELOS_API = {"opus": "claude-opus-5-5", "sonnet": "claude-sonnet-5-5"}

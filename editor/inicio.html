@@ -50,6 +50,12 @@ pre.log { background: var(--s0); border: 1px solid var(--linha); border-radius: 
 .video .m { font-size: 12px; color: var(--fraco); }
 .video .acoes { display: flex; gap: 6px; margin-top: auto; padding-top: 4px; }
 .video .acoes .btn { flex: 1; }
+#dlgMais { width: min(560px, calc(100vw - 32px)); border: 1px solid var(--linha2); border-radius: 16px; padding: 22px 22px 18px; background: var(--s1); color: var(--texto); box-shadow: var(--sombra); }
+#dlgMais::backdrop { background: rgba(0,0,0,.6); }
+#dlgMais h3 { margin: 0 0 4px; font-size: 18px; }
+#dlgMais .m-tit { color: var(--fraco); font-size: 13.5px; font-weight: 600; }
+#dlgMais textarea { width: 100%; box-sizing: border-box; padding: 11px 13px; font: inherit; font-size: 14px; border-radius: 10px; background: var(--s0); color: var(--texto); border: 1px solid var(--linha); resize: vertical; }
+#dlgMais .opcoes { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .vazio { color: var(--fraco); padding: 34px 0; text-align: center; border: 1px dashed var(--linha2); border-radius: 14px; grid-column: 1 / -1; }
 </style>
 </head>
@@ -88,6 +94,21 @@ pre.log { background: var(--s0); border: 1px solid var(--linha); border-radius: 
     <div class="nota" id="aviso" style="color:var(--acento)"></div>
   </section>
   <section class="card" id="cardTarefas" style="display:none"><div class="card-t"><h2>Em andamento</h2></div><div id="listaTarefas"></div></section>
+  <dialog id="dlgMais">
+    <h3>Mais cortes</h3>
+    <div class="m-tit" id="maisTitulo"></div>
+    <p class="nota" id="maisInfo" style="margin-top:6px"></p>
+    <div class="opcoes" style="margin:14px 0 12px">
+      <div><label>Quantos cortes novos</label><select id="maisCortes"><option value="0">A skill decide</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option></select></div>
+      <div><label>Quem escolhe os momentos</label><select id="maisModelo"><option value="opus">Claude Opus (mais caprichado)</option><option value="sonnet">Claude Sonnet (mais econômico)</option></select></div>
+      <div><label>No fim</label><select id="maisRender"><option value="nao">Eu renderizo no editor</option><option value="sim">Já renderizar tudo</option></select></div>
+    </div>
+    <div class="orient"><label for="maisOrient">Orientação <span>(opcional)</span></label>
+      <textarea id="maisOrient" rows="3" maxlength="2000" placeholder="Ex.: Quero um corte da parte de 25:10 até 26:00. Procure os momentos de tensão."></textarea></div>
+    <div class="nota" id="maisAviso" style="color:var(--acento);margin:0 0 10px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" id="maisCancelar">Cancelar</button><button class="btn primario" id="maisIr">＋ Buscar mais cortes</button></div>
+  </dialog>
   <section class="card"><div class="card-t"><div><h2>Seus vídeos</h2><p>Abra um vídeo pra ajustar os cortes no editor.</p></div></div><div class="grade" id="grade"></div></section>
 </div>
 <script>
@@ -158,11 +179,32 @@ async function atualizar() {
       <div class="info"><div class="t" title="${esc(p.titulo)}">${esc(p.titulo)}</div>
       <div class="m">${p.prontos} de ${p.cortes} cortes prontos · ${new Date(p.quando * 1000).toLocaleDateString("pt-BR")}</div>
       <div class="acoes"><a class="btn primario pequeno" href="/editar?v=${encodeURIComponent(p.slug)}">Editar</a>
-      <button class="btn pequeno pasta" data-slug="${esc(p.slug)}">Abrir pasta</button></div></div></div>`).join("")
+      <button class="btn pequeno mais" data-slug="${esc(p.slug)}" data-titulo="${esc(p.titulo)}" data-cortes="${p.cortes}" title="Procurar outros momentos neste vídeo, sem repetir os cortes que já existem">＋ Mais cortes</button>
+      <button class="btn pequeno ghost pasta" data-slug="${esc(p.slug)}" title="Abrir pasta">📁</button></div></div></div>`).join("")
       : `<div class="vazio">Nenhum vídeo ainda. Mande um link ou arquivo aí em cima.</div>`;
     g.querySelectorAll(".pasta").forEach(b => b.onclick = () => api(`/api/abrir-pasta/${encodeURIComponent(b.dataset.slug)}`, { method: "POST" }));
+    g.querySelectorAll(".mais").forEach(b => b.onclick = () => abrirMais(b.dataset.slug, b.dataset.titulo, +b.dataset.cortes));
   } catch (e) { console.error(e); }
 }
+// ---------- mais cortes de um vídeo que já foi processado ----------
+let maisSlug = null;
+function abrirMais(slug, titulo, n) {
+  maisSlug = slug; $("#maisTitulo").textContent = titulo; $("#maisAviso").textContent = "";
+  $("#maisInfo").textContent = `Este vídeo já tem ${n} corte${n === 1 ? "" : "s"}. O Claude procura outros momentos e não repete esses: os trechos e os assuntos que já viraram corte ficam de fora (e qualquer corte novo que encoste num antigo é descartado).`;
+  $("#maisModelo").value = $("#modelo").value; $("#maisOrient").value = ""; $("#maisCortes").value = "0";
+  $("#dlgMais").showModal();
+}
+$("#maisCancelar").onclick = () => $("#dlgMais").close();
+$("#maisIr").onclick = async () => {
+  const bt = $("#maisIr"); bt.disabled = true; $("#maisAviso").textContent = "";
+  try {
+    await api("/api/tarefa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+      mais: maisSlug, cortes: +$("#maisCortes").value, modelo: $("#maisModelo").value, renderizar: $("#maisRender").value,
+      orientacao: $("#maisOrient").value.trim(), idioma: "pt" }) });
+    $("#dlgMais").close(); atualizar(); window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) { $("#maisAviso").textContent = e.message; }
+  bt.disabled = false;
+};
 api("/api/config").then(c => { $("#modelo").value = c.VIBECLIPPER_MODELO || "opus";
   const temIA = c.tem_ANTHROPIC_API_KEY || (c.claude_code && c.VIBECLIPPER_IA !== "api");
   $("#semIA").style.display = temIA ? "none" : ""; }).catch(() => {});

@@ -97,6 +97,30 @@ main { display: grid; grid-template-columns: minmax(0, 1.45fr) auto minmax(360px
 .preset { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 2px; background: var(--s2); border: 1px solid var(--linha); border-radius: 10px; font-size: 10.5px; color: var(--fraco); }
 .preset:hover { color: var(--texto); border-color: var(--linha2); }
 .preset .amostra { width: 34px; height: 26px; background: linear-gradient(135deg, #5a6478, #2a303c); }
+.gpt-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.gpt-cab b { font-size: 13px; }
+.gpt-aviso { color: var(--acento2, #ffb74d); font-size: 13px; } .gpt-aviso a { color: var(--texto); }
+.gpt-campo { margin-bottom: 10px; }
+.gpt-rot { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fraco); margin-bottom: 4px; }
+.gpt-rot span:first-child { font-weight: 600; } .gpt-rot span:nth-child(2) { flex: 1; font-size: 11px; color: var(--fraco2); }
+#aba-chatgpt input[type=text], #aba-chatgpt textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 9px; font: inherit; font-size: 13px; background: var(--s0); color: var(--texto); border: 1px solid var(--linha); resize: vertical; }
+.gpt-pedir input { flex: 1; } .gpt-pedir { flex-wrap: nowrap !important; }
+.gpt-refs { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.gpt-refs .vazio-p { grid-column: 1 / -1; color: var(--fraco2); font-size: 12px; }
+.gpt-ref { position: relative; border-radius: 8px; overflow: hidden; border: 2px solid transparent; cursor: pointer; aspect-ratio: 1; background: #000 center/cover no-repeat; }
+.gpt-ref.sel { border-color: var(--acento); } .gpt-ref:not(.sel) { opacity: .45; }
+.gpt-ref .tira { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; border-radius: 6px; border: 0; padding: 0; background: rgba(0,0,0,.65); color: #fff; font-size: 12px; line-height: 20px; }
+.gpt-ref .ok { position: absolute; left: 3px; top: 2px; font-size: 12px; text-shadow: 0 0 3px #000; }
+.gpt-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 10px; }
+.gpt-thumbs a { display: block; border-radius: 10px; overflow: hidden; border: 1px solid var(--linha); position: relative; }
+.gpt-thumbs img { width: 100%; display: block; }
+.gpt-thumbs a span { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,.7); color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 6px; }
+.gpt-hist { display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow: auto; }
+.gpt-msg { padding: 8px 10px; border-radius: 10px; font-size: 12.5px; line-height: 1.45; background: var(--s2); border: 1px solid var(--linha); }
+.gpt-msg.voce { background: rgba(255,77,61,.07); border-color: rgba(255,77,61,.25); margin-left: 24px; }
+.gpt-msg .q { font-size: 11px; color: var(--fraco2); margin-bottom: 3px; }
+.gpt-msg img { max-width: 110px; border-radius: 6px; display: block; margin-top: 4px; }
+.gpt-msg .minis { display: flex; gap: 4px; margin-top: 4px; } .gpt-msg .minis img { width: 40px; height: 40px; object-fit: cover; margin: 0; }
 #finalVideo { width: 100%; border-radius: 12px; background: #000; aspect-ratio: 9 / 16; max-height: 62vh; box-shadow: 0 0 0 1px var(--linha); }
 /* rodapé: transporte + linha do tempo */
 footer { border-top: 1px solid var(--linha); background: var(--s1); padding: 10px 14px 12px; }
@@ -203,6 +227,7 @@ footer { border-top: 1px solid var(--linha); background: var(--s1); padding: 10p
         <button data-aba="efeitos"><svg class="ic"><use href="#i-spark"/></svg>Efeitos</button>
         <button data-aba="midia"><svg class="ic"><use href="#i-image"/></svg>Mídia</button>
         <button data-aba="cortar"><svg class="ic"><use href="#i-cut"/></svg>Cortar</button>
+        <button data-aba="chatgpt"><svg class="ic"><use href="#i-spark"/></svg>ChatGPT</button>
         <button data-aba="final"><svg class="ic"><use href="#i-down"/></svg>Final</button>
       </nav>
       <div class="conteudo">
@@ -371,6 +396,42 @@ footer { border-top: 1px solid var(--linha); background: var(--s1); padding: 10p
           </div>
         </div>
         <!-- FINAL -->
+        <div class="aba" id="aba-chatgpt">
+          <div class="aba-cab"><h3>ChatGPT</h3><p>Título, descrição, tags e thumb deste corte, feitos a partir do que é falado nele (API da OpenAI).</p></div>
+          <div class="secao gpt-aviso" id="gptSemChave" style="display:none">⚠ Falta a chave da API da OpenAI. Coloque em <a href="/config" target="_blank">Configurações</a> e volte aqui.</div>
+          <div class="secao">
+            <div class="gpt-cab"><b>Pra postar</b><button class="btn primario pequeno" id="gptGerar"><svg class="ic"><use href="#i-spark"/></svg>Gerar título, descrição e tags</button></div>
+            <div class="gpt-campo"><div class="gpt-rot"><span>Título</span><span id="gptTitN"></span><button class="btn pequeno ghost gpt-copiar" data-de="gptTitulo">Copiar</button></div>
+              <input type="text" id="gptTitulo" placeholder="(ainda não gerado)"></div>
+            <div class="gpt-campo"><div class="gpt-rot"><span>Descrição</span><span></span><button class="btn pequeno ghost gpt-copiar" data-de="gptDesc">Copiar</button></div>
+              <textarea id="gptDesc" rows="4" placeholder="(ainda não gerada)"></textarea></div>
+            <div class="gpt-campo"><div class="gpt-rot"><span>Tags</span><span></span><button class="btn pequeno ghost gpt-copiar" data-de="gptTags">Copiar</button><button class="btn pequeno ghost" id="gptCopiarHash">Copiar com #</button></div>
+              <textarea id="gptTags" rows="2" placeholder="separadas por vírgula"></textarea></div>
+            <div class="linha gpt-pedir"><input type="text" id="gptPedTexto" placeholder="Pedir um ajuste: ex. título mais polêmico, descrição mais curta…"><button class="btn pequeno" id="gptAjustar">Pedir</button></div>
+          </div>
+          <div class="secao">
+            <div class="gpt-cab"><b>Thumb</b></div>
+            <div class="nota-p" style="margin:0 0 8px">Referências (marque as que o ChatGPT deve usar): fotos suas, de personagens, de outra thumb, ou um print do corte.</div>
+            <div class="gpt-refs" id="gptRefs"></div>
+            <div class="linha" style="margin:8px 0;gap:6px;flex-wrap:wrap">
+              <button class="btn pequeno" id="gptEnviarRef"><svg class="ic"><use href="#i-image"/></svg>Enviar imagem</button>
+              <button class="btn pequeno" id="gptPrint" title="Tira um print do vídeo no ponto em que ele está agora"><svg class="ic"><use href="#i-target"/></svg>Print do momento atual</button>
+              <input type="file" id="gptArqRef" accept="image/png,image/jpeg,image/webp" multiple hidden>
+            </div>
+            <div class="linha" style="margin:0 0 8px;gap:6px;flex-wrap:wrap">
+              <span class="tag">formato</span><select id="gptFormato"><option value="vertical">Vertical 9:16 (Shorts/Reels)</option><option value="horizontal">Horizontal 16:9 (YouTube)</option><option value="quadrada">Quadrada</option></select>
+              <span class="tag">qualidade</span><select id="gptQualidade"><option value="low">Rascunho (barato)</option><option value="medium" selected>Média</option><option value="high">Alta</option></select>
+            </div>
+            <label class="linha" style="color:var(--fraco);margin:0 0 8px"><input type="checkbox" id="gptBase"> partir da última thumb (pra ajustar em cima dela)</label>
+            <textarea id="gptPedThumb" rows="3" placeholder="O que você quer na thumb: ex. eu com cara de susto à esquerda, o soldado mirando atrás, texto 'ELE NÃO VIU'"></textarea>
+            <div class="linha" style="margin-top:8px"><button class="btn primario pequeno" id="gptThumb"><svg class="ic"><use href="#i-image"/></svg>Criar thumb</button><span class="nota-p" id="gptEstThumb" style="margin:0"></span></div>
+            <div class="gpt-thumbs" id="gptThumbs"></div>
+          </div>
+          <div class="secao">
+            <div class="gpt-cab"><b>Histórico de pedidos</b></div>
+            <div id="gptHist" class="gpt-hist"></div>
+          </div>
+        </div>
         <div class="aba" id="aba-final">
           <div class="aba-cab"><h3>Vídeo final</h3><p id="finalInfo"></p></div>
           <div class="secao">
@@ -1541,7 +1602,86 @@ $("#btDesfazer").onclick = desfazer; $("#btRefazer").onclick = refazer;
 
 // ---------- abas ----------
 function abrirAba(nome) { document.querySelectorAll("#abas button").forEach(b => b.classList.toggle("ativo", b.dataset.aba === nome));
-  document.querySelectorAll(".aba").forEach(a => a.classList.toggle("ativo", a.id === "aba-" + nome)); if (nome === "final") mostrarFinal(); }
+  document.querySelectorAll(".aba").forEach(a => a.classList.toggle("ativo", a.id === "aba-" + nome)); if (nome === "final") mostrarFinal();
+  if (nome === "chatgpt") carregaGpt(); }
+
+// ---------- ChatGPT: título, descrição, tags e thumb do corte (scripts/chatgpt.py) ----------
+let G = null, gptSel = new Set(), gptCorte = "", gptOcupado = false;
+const gUrl = (sub) => `/api/chatgpt/${encodeURIComponent(S.slug)}/${S.n}` + (sub ? "/" + sub : "");
+const gArq = (a) => `/chatgpt-arq/${encodeURIComponent(S.slug)}/${S.n}/${encodeURIComponent(a)}`;
+const gPost = (acao, body) => api(gUrl(acao), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+async function carregaGpt() {
+  if (!S) return; const chaveCorte = S.slug + "/" + S.n;
+  if (gptCorte !== chaveCorte) { gptSel = new Set(); gptCorte = chaveCorte; }
+  try { G = await api(gUrl()); } catch (e) { estado("erro no ChatGPT: " + e.message, "erro"); return; }
+  desenhaGpt(true);
+}
+function tagsDe(txt) { return txt.split(/[,\n]/).map(t => t.trim().replace(/^#/, "")).filter(Boolean); }
+function desenhaGpt(campos) {
+  if (!G) return;
+  $("#gptSemChave").style.display = G.tem_chave ? "none" : "";
+  const r = G.resultado || {};
+  if (campos) { $("#gptTitulo").value = r.titulo || ""; $("#gptDesc").value = r.descricao || ""; $("#gptTags").value = (r.tags || []).join(", "); }
+  $("#gptTitN").textContent = $("#gptTitulo").value ? `${$("#gptTitulo").value.length} caracteres` : "";
+  $("#gptGerar").lastChild.textContent = r.titulo ? "Gerar de novo" : "Gerar título, descrição e tags";
+  const refs = G.refs || [];
+  $("#gptRefs").innerHTML = refs.length ? refs.map(x => `<div class="gpt-ref ${gptSel.has(x.arquivo) ? "sel" : ""}" data-a="${esc(x.arquivo)}" title="${esc(x.nome || "")}" style="background-image:url('${gArq(x.arquivo)}')">
+      <span class="ok">${gptSel.has(x.arquivo) ? "✓" : ""}</span><button class="tira" title="Tirar">×</button></div>`).join("")
+    : `<div class="vazio-p">Nenhuma referência. Sem referência, o ChatGPT cria a thumb só pelo texto.</div>`;
+  $("#gptRefs").querySelectorAll(".gpt-ref").forEach(d => {
+    d.onclick = (e) => { if (e.target.classList.contains("tira")) return; const a = d.dataset.a; gptSel.has(a) ? gptSel.delete(a) : gptSel.add(a); desenhaGpt(); };
+    d.querySelector(".tira").onclick = async () => { G = { ...G, ...(await gPost("tirar-ref", { arquivo: d.dataset.a })) }; gptSel.delete(d.dataset.a); desenhaGpt(); };
+  });
+  const th = (G.thumbs || []).slice().reverse();
+  $("#gptThumbs").innerHTML = th.map((x, i) => `<a href="${gArq(x.arquivo)}" download="${esc(x.arquivo)}" title="Clique pra baixar"><img src="${gArq(x.arquivo)}" loading="lazy"><span>${i === 0 ? "última · " : ""}baixar</span></a>`).join("");
+  $("#gptBase").disabled = !th.length;
+  const h = G.mensagens || [];
+  $("#gptHist").innerHTML = h.length ? h.map(m => {
+    const quando = new Date(m.t * 1000).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    const tipo = m.tipo === "thumb" ? "thumb" : "textos";
+    if (m.papel === "voce") return `<div class="gpt-msg voce"><div class="q">Você · ${tipo} · ${quando}</div>${esc(m.texto || "")}${(m.refs || []).length ? `<div class="minis">${m.refs.map(a => `<img src="${gArq(a)}">`).join("")}</div>` : ""}</div>`;
+    if (m.tipo === "thumb") return `<div class="gpt-msg"><div class="q">ChatGPT · ${esc(m.modelo || "")}</div><a href="${gArq(m.arquivo)}" download><img src="${gArq(m.arquivo)}" loading="lazy"></a></div>`;
+    const r_ = m.resultado || {};
+    return `<div class="gpt-msg"><div class="q">ChatGPT · ${esc(m.modelo || "")}</div><b>${esc(r_.titulo || "")}</b><br>${esc(r_.descricao || "").replace(/\n/g, "<br>")}<br><span style="color:var(--fraco)">${esc((r_.tags || []).join(", "))}</span></div>`;
+  }).join("") : `<div class="nota-p" style="margin:0">Nada ainda. Os pedidos e as respostas deste corte ficam guardados aqui.</div>`;
+  $("#gptHist").scrollTop = $("#gptHist").scrollHeight;
+}
+function gptTrava(sim, msg) { gptOcupado = sim; ["#gptGerar", "#gptAjustar", "#gptThumb", "#gptPrint", "#gptEnviarRef"].forEach(s => $(s).disabled = sim); if (msg !== undefined) estado(msg, sim ? "" : "ok"); }
+async function gptTextos(pedido) {
+  if (gptOcupado) return; gptTrava(true, "o ChatGPT está escrevendo o título, a descrição e as tags…");
+  try { G = { ...G, ...(await gPost("textos", { pedido })) }; desenhaGpt(true); $("#gptPedTexto").value = ""; gptTrava(false, "ChatGPT: textos prontos ✓"); }
+  catch (e) { gptTrava(false); estado("ChatGPT: " + e.message, "erro"); }
+}
+$("#gptGerar").onclick = () => gptTextos("");
+$("#gptAjustar").onclick = () => { const p = $("#gptPedTexto").value.trim(); if (!p) return $("#gptPedTexto").focus(); gptTextos(p); };
+$("#gptPedTexto").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("#gptAjustar").click(); } e.stopPropagation(); };
+let gptSalvaT = null;
+["#gptTitulo", "#gptDesc", "#gptTags"].forEach(s => { $(s).addEventListener("keydown", e => e.stopPropagation());
+  $(s).oninput = () => { desenhaGpt(); clearTimeout(gptSalvaT); gptSalvaT = setTimeout(async () => {
+    try { G = { ...G, ...(await gPost("resultado", { titulo: $("#gptTitulo").value, descricao: $("#gptDesc").value, tags: tagsDe($("#gptTags").value) })) }; } catch (e) { /* tenta na próxima */ } }, 700); }; });
+$("#gptPedThumb").addEventListener("keydown", e => e.stopPropagation());
+document.querySelectorAll(".gpt-copiar").forEach(b => b.onclick = async () => { await navigator.clipboard.writeText($("#" + b.dataset.de).value); estado("copiado ✓", "ok"); });
+$("#gptCopiarHash").onclick = async () => { await navigator.clipboard.writeText(tagsDe($("#gptTags").value).map(t => "#" + t.replace(/\s+/g, "")).join(" ")); estado("tags copiadas com # ✓", "ok"); };
+$("#gptEnviarRef").onclick = () => $("#gptArqRef").click();
+$("#gptArqRef").onchange = async () => {
+  for (const f of $("#gptArqRef").files) {
+    try { const r = await fetch(gUrl("ref") + "?nome=" + encodeURIComponent(f.name), { method: "POST", body: f }); const j = await r.json(); if (!r.ok) throw new Error(j.erro);
+      G = { ...G, ...j }; gptSel.add(j.refs[j.refs.length - 1].arquivo); } catch (e) { estado("referência: " + e.message, "erro"); }
+  }
+  $("#gptArqRef").value = ""; desenhaGpt();
+};
+$("#gptPrint").onclick = async () => {
+  try { const j = await gPost("print", { t: v.currentTime }); G = { ...G, ...j }; gptSel.add(j.refs[j.refs.length - 1].arquivo); desenhaGpt(); estado(`print em ${fmt(v.currentTime)} s ✓`, "ok"); }
+  catch (e) { estado("print: " + e.message, "erro"); }
+};
+$("#gptThumb").onclick = async () => {
+  if (gptOcupado) return; gptTrava(true, "o ChatGPT está criando a thumb (pode levar até 1 minuto)…"); $("#gptEstThumb").textContent = "criando…";
+  try {
+    G = { ...G, ...(await gPost("thumb", { pedido: $("#gptPedThumb").value.trim(), refs: [...gptSel], formato: $("#gptFormato").value,
+      qualidade: $("#gptQualidade").value, base_ultima: $("#gptBase").checked })) };
+    $("#gptPedThumb").value = ""; desenhaGpt(); gptTrava(false, "ChatGPT: thumb pronta ✓"); $("#gptEstThumb").textContent = "";
+  } catch (e) { gptTrava(false); estado("ChatGPT: " + e.message, "erro"); $("#gptEstThumb").textContent = ""; }
+};
 document.querySelectorAll("#abas button").forEach(b => b.onclick = () => abrirAba(b.dataset.aba));
 
 // ---------- carregar ----------
@@ -1569,6 +1709,7 @@ async function carregarCorte(n) {
   await new Promise(r => v.addEventListener("loadeddata", r, { once: true }));
   const c = projeto.cortes.find(c => c.n === n);
   estado(`${c.titulo} · ${fmt(c.dur)} s` + (d.tem_edicao ? " · editado" : ""), d.tem_edicao ? "ok" : "");
+  G = null; if ($("#aba-chatgpt").classList.contains("ativo")) carregaGpt();
   atualizaPainel();
   if (d.estado && d.estado.estado === "renderizando") acompanhar();
   if ($("#aba-final").classList.contains("ativo")) mostrarFinal();

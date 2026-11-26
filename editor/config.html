@@ -71,6 +71,23 @@ code { background: var(--s3); border-radius: 5px; padding: 1px 6px; font-size: 1
     </div>
   </section>
 
+  <section class="card">
+    <h2>Chave da API da OpenAI (ChatGPT) <span class="tag">opcional</span></h2>
+    <p>Pra aba <b>ChatGPT</b> do editor: título, descrição, tags e thumb de cada corte. Crie em <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com</a> → API keys (começa com <code>sk-</code>) e coloque crédito em Billing. É cobrado por uso, separado do ChatGPT Plus. <span id="tagOpenai" class="tag">não configurada</span></p>
+    <div class="linha">
+      <input type="password" id="chaveOpenai" placeholder="sk-..." autocomplete="off" spellcheck="false">
+      <button class="btn" id="verOpenai" title="Mostrar/esconder">👁</button>
+      <button class="btn" id="testarOpenai">Testar</button>
+      <button class="btn" id="apagarOpenai">Remover</button>
+    </div>
+    <div class="estado" id="estOpenai"></div>
+    <label class="r">Modelo de texto (título, descrição e tags)</label>
+    <div class="linha"><select id="modTexto"><option value="">Automático (o melhor que a chave tiver)</option></select></div>
+    <label class="r">Modelo de imagem (thumb)</label>
+    <div class="linha"><select id="modImagem"><option value="">Automático (o melhor que a chave tiver)</option></select></div>
+    <p style="margin:8px 0 0;font-size:12.5px">Clique em <b>Testar</b> pra carregar a lista de modelos que a sua chave tem.</p>
+  </section>
+
   <div class="rodape"><button class="btn primario" id="salvar">Salvar configurações</button><span class="estado" id="estSalvar" style="margin:0"></span></div>
 </div>
 <script>
@@ -87,6 +104,13 @@ function mostra(c) {
   $("#tagClaude").className = "tag" + (c.tem_ANTHROPIC_API_KEY ? " ok" : "");
   $("#tagEleven").textContent = c.tem_ELEVENLABS_API_KEY ? `configurada ${c.ELEVENLABS_API_KEY}` : "não configurada";
   $("#tagEleven").className = "tag" + (c.tem_ELEVENLABS_API_KEY ? " ok" : "");
+  $("#tagOpenai").textContent = c.tem_OPENAI_API_KEY ? `configurada ${c.OPENAI_API_KEY}` : "não configurada";
+  $("#tagOpenai").className = "tag" + (c.tem_OPENAI_API_KEY ? " ok" : "");
+  for (const [id, k] of [["#modTexto", "OPENAI_MODELO_TEXTO"], ["#modImagem", "OPENAI_MODELO_IMAGEM"]]) {
+    const s = $(id), v_ = c[k] || "";
+    if (v_ && ![...s.options].some(o => o.value === v_)) s.add(new Option(v_, v_));
+    s.value = v_;
+  }
   if (c.claude_code !== undefined) { $("#ccEstado").textContent = c.claude_code ? "encontrado ✓" : "não encontrado neste computador"; $("#ccEstado").className = "tag" + (c.claude_code ? " ok" : ""); }
   if (c.arquivo) $("#arq").textContent = c.arquivo;
 }
@@ -106,12 +130,33 @@ async function salvar(extra) {
     d.ANTHROPIC_API_KEY = kc;
   }
   if (ke && !("ELEVENLABS_API_KEY" in d)) d.ELEVENLABS_API_KEY = ke;
-  try { const r = await post("/api/config", d); $("#chaveClaude").value = ""; $("#chaveEleven").value = ""; mostra({ ...atual, ...r }); estado($("#estSalvar"), "salvo ✓", "ok"); }
+  const ko = $("#chaveOpenai").value.trim();
+  if (ko && !("OPENAI_API_KEY" in d)) {
+    if (!ko.startsWith("sk-")) { estado($("#estOpenai"), "a chave da OpenAI começa com sk-", "erro"); return; }
+    d.OPENAI_API_KEY = ko;
+  }
+  d.OPENAI_MODELO_TEXTO = $("#modTexto").value || "__apagar__";
+  d.OPENAI_MODELO_IMAGEM = $("#modImagem").value || "__apagar__";
+  try { const r = await post("/api/config", d); $("#chaveClaude").value = ""; $("#chaveEleven").value = ""; $("#chaveOpenai").value = ""; mostra({ ...atual, ...r }); estado($("#estSalvar"), "salvo ✓", "ok"); }
   catch (e) { estado($("#estSalvar"), "erro: " + e.message, "erro"); }
 }
 $("#salvar").onclick = () => salvar({});
 $("#apagarClaude").onclick = () => { if (confirm("Remover a chave da API do Claude deste computador?")) salvar({ ANTHROPIC_API_KEY: "__apagar__" }); };
 $("#apagarEleven").onclick = () => { if (confirm("Remover a chave da ElevenLabs deste computador?")) salvar({ ELEVENLABS_API_KEY: "__apagar__" }); };
+$("#verOpenai").onclick = () => { const i = $("#chaveOpenai"); i.type = i.type === "password" ? "text" : "password"; };
+$("#apagarOpenai").onclick = () => { if (confirm("Remover a chave da OpenAI deste computador?")) salvar({ OPENAI_API_KEY: "__apagar__" }); };
+$("#testarOpenai").onclick = async () => {
+  const b = $("#testarOpenai"); b.disabled = true; estado($("#estOpenai"), "testando…");
+  try {
+    const r = await post("/api/config/testar-openai", { chave: $("#chaveOpenai").value.trim() });
+    estado($("#estOpenai"), r.msg, r.ok ? "ok" : "erro");
+    for (const [id, lista] of [["#modTexto", r.texto || []], ["#modImagem", r.imagem || []]]) {
+      const s = $(id), atual_ = s.value; s.length = 1; lista.forEach(m => s.add(new Option(m, m))); s.value = lista.includes(atual_) ? atual_ : "";
+      if (atual_ && !lista.includes(atual_)) { s.add(new Option(atual_ + " (não achado na chave)", atual_)); s.value = atual_; }
+    }
+  } catch (e) { estado($("#estOpenai"), "erro: " + e.message, "erro"); }
+  b.disabled = false;
+};
 api("/api/config").then(mostra).catch(e => estado($("#estSalvar"), "erro: " + e.message, "erro"));
 </script>
 </body>

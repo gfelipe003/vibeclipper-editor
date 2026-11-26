@@ -185,7 +185,7 @@ def perguntar_api(tarefa, chave, sistema, pergunta, modelo):
     return "".join(b.text for b in msg.content if b.type == "text")
 
 
-def escolher(tarefa, T, titulo, n_cortes, gameplay, modelo, orientacao=""):
+def escolher(tarefa, T, titulo, n_cortes, gameplay, modelo, orientacao="", ja_feitos=None, arq_esc=None, arq_cortes=None):
     import config
     cfg = config.ler()
     modo, chave = cfg.get("VIBECLIPPER_IA", "auto"), cfg.get("ANTHROPIC_API_KEY")
@@ -205,8 +205,13 @@ def escolher(tarefa, T, titulo, n_cortes, gameplay, modelo, orientacao=""):
                "vídeo longo pra virar cortes verticais (Shorts, Reels, TikTok). Siga estas regras à risca:\n\n"
                + regras_da_skill() +
                "\n\nResponda SÓ com o JSON do escolha.json (sem texto antes ou depois, sem ```), no formato do modelo.")
-    quantos = (f"Faça exatamente {n_cortes} cortes." if n_cortes else
-               "Quantos cortes: siga a regra (5 a 8 num vídeo longo, 2 a 4 em vídeo de menos de 20 minutos).")
+    if ja_feitos:
+        quantos = (f"Faça exatamente {n_cortes} cortes NOVOS." if n_cortes else
+                   "Quantos cortes: de 2 a 5 momentos NOVOS que valham a pena (se o vídeo não tiver tantos, faça menos; "
+                   "nunca encha com corte fraco).")
+    else:
+        quantos = (f"Faça exatamente {n_cortes} cortes." if n_cortes else
+                   "Quantos cortes: siga a regra (5 a 8 num vídeo longo, 2 a 4 em vídeo de menos de 20 minutos).")
     gp = {"sim": "É um vídeo de gameplay (jogo com a webcam do streamer).",
           "nao": "Não é gameplay (é conversa, podcast, aula ou parecido)."}.get(gameplay, (
           "Diga também se é gameplay: ponha no topo do JSON \"gameplay\": true (jogo com webcam do streamer) ou false."))
@@ -218,12 +223,17 @@ def escolher(tarefa, T, titulo, n_cortes, gameplay, modelo, orientacao=""):
                   "cada uma. Se ela pediu um trecho específico num corte, esse corte TEM que existir e cobrir o trecho, "
                   "mesmo que fuja dos 30 a 75 s (ajuste o começo e o fim pra frase completa mais próxima); escreva no "
                   "\"porque\" dele que veio da orientação. Os outros cortes seguem as regras normais.")
+    if ja_feitos:
+        orient += ("\n\nCORTES QUE JÁ FORAM FEITOS DESTE VÍDEO (a pessoa pediu MAIS cortes):\n" + "\n".join(ja_feitos) +
+                   "\nNÃO repita nenhum deles: os cortes novos não podem usar nenhuma dessas linhas (nem em parte) e não "
+                   "podem tratar do mesmo assunto ou da mesma história, mesmo contada em outro ponto do vídeo. Procure no "
+                   "resto da transcrição.")
     pergunta = (f"Título do vídeo: {titulo}\n{quantos}\n{gp}{orient}\n\nModelo do escolha.json:\n{modelo_json}\n\n"
                 f"Transcrição numerada (leia inteira):\n\n{numerada}")
     resp = perguntar(tarefa, sistema, pergunta, modelo)
     esc = json_da_resposta(resp)
-    arq = os.path.join(T, "escolha.json")
-    cortes = os.path.join(T, "cortes.json")
+    arq = arq_esc or os.path.join(T, "escolha.json")
+    cortes = arq_cortes or os.path.join(T, "cortes.json")
     for rodada in range(2):
         json.dump(esc, open(arq, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
         out = rodar(tarefa, [PY, "scripts/escolher.py", "validar", arq, "--transcricao", os.path.join(T, "transcricao.json"),
@@ -240,7 +250,10 @@ def escolher(tarefa, T, titulo, n_cortes, gameplay, modelo, orientacao=""):
             "O validador avisou:\n" + "\n".join(avisos) + "\n\nCorrija SÓ esses cortes (mude linha_ini/linha_fim pra ficar "
             "entre 30 e 75 s, ou tire o corte se não der) e devolva o escolha.json inteiro. "
             + ("Um corte que cobre o trecho pedido na orientação da pessoa fica como está, mesmo fora do tempo.\n"
-               f"Orientação: {orientacao}\n" if orientacao else "") + "\n\nSeu JSON anterior:\n"
+               f"Orientação: {orientacao}\n" if orientacao else "")
+            + ("Continue sem usar as linhas dos cortes que já foram feitos:\n" + "\n".join(ja_feitos) + "\n"
+               if ja_feitos else "")
+            + "\n\nSeu JSON anterior:\n"
             + json.dumps(esc, ensure_ascii=False) + "\n\nTranscrição numerada:\n\n" + numerada), modelo)
         esc = json_da_resposta(resp)
     return esc
@@ -262,13 +275,26 @@ def main():
     ap.add_argument("--orientacao", default="", help="pedido livre da pessoa pra escolha (ex.: 'de 12:30 a 13:45 num corte')")
     ap.add_argument("--renderizar", action="store_true",
                     help="renderiza os MP4 finais no fim (sem isso, para pronto pra ajustar e renderizar no editor)")
+    ap.add_argument("--mais", default=None, metavar="SLUG",
+                    help="pega MAIS cortes de um vídeo já processado (trabalho/SLUG), sem repetir os que já existem")
     ap.add_argument("--mover", action="store_true", help="(arquivo) move em vez de copiar (o upload da página inicial)")
     a = ap.parse_args()
     if not a.modelo:
         import config
         a.modelo = config.ler().get("VIBECLIPPER_MODELO", "opus")
+    if a.mais:
+        tarefa = Tarefa(a.tarefa, a.mais)
+        try:
+            mais_cortes(a, tarefa)
+        except Exception as e:                                               # noqa: BLE001
+            tarefa.d.update(estado="erro", erro=str(e), fim=time.time())
+            tarefa.salvar()
+            tarefa.escrever(f"\nERRO: {e}\n")
+            print(f"[automatico] ERRO: {e}", file=sys.stderr)
+            sys.exit(1)
+        return
     if not a.url and not a.arquivo:
-        raise SystemExit("passe --url ou --arquivo")
+        raise SystemExit("passe --url, --arquivo ou --mais")
     tarefa = Tarefa(a.tarefa, a.url or os.path.basename(a.arquivo))
     try:
         # 1. baixa (ou importa o arquivo)
@@ -329,6 +355,18 @@ def main():
             rodar(tarefa, [PY, "scripts/cortar.py", "--cortes", os.path.join(T, "cortes.json"), "--video", orig,
                            "--audio", audio, "--pasta", T])
         cs = json.load(open(os.path.join(T, "cortes.json"), encoding="utf-8"))["cortes"]
+        finalizar(tarefa, T, slug, cs, gameplay, a.renderizar)
+    except Exception as e:                                                   # noqa: BLE001
+        tarefa.d.update(estado="erro", erro=str(e), fim=time.time())
+        tarefa.salvar()
+        tarefa.escrever(f"\nERRO: {e}\n")
+        print(f"[automatico] ERRO: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def finalizar(tarefa, T, slug, cs, gameplay, renderizar, total=None):
+    """Etapas 5 e 6 pros cortes `cs` (já cortados, com fonte.mp4): enquadra, legenda, efeitos e (se pedir) renderiza."""
+    if True:
         # 5. enquadra
         for i, c in enumerate(cs):
             n = c["n"]
@@ -347,9 +385,9 @@ def main():
             rodar(tarefa, [PY, "scripts/efeitos.py", "--plano", os.path.join(P, "plano.json"), "--legenda",
                            os.path.join(P, "legenda.json"), "--saida", os.path.join(P, "sfx.json")])
         feitos = 0
-        if not a.renderizar:
+        if not renderizar:
             tarefa.etapa(5, "legenda e efeitos prontos; o render fica pra você no editor", 98)
-        for k in (range(0, len(cs), 2) if a.renderizar else []):
+        for k in (range(0, len(cs), 2) if renderizar else []):
             par = cs[k:k + 2]
             tarefa.etapa(5, "renderizando " + " e ".join(f"corte {c['n']}" for c in par) + f" ({feitos} de {len(cs)} prontos)",
                          65 + int(33 * feitos / max(1, len(cs))))
@@ -371,14 +409,101 @@ def main():
         rodar(tarefa, [PY, "scripts/escolher.py", "resumo", os.path.join(T, "cortes.json"), "--saida",
                        os.path.join(O, "cortes.md")])
         tarefa.d.update(estado="pronto", fim=time.time())
-        tarefa.etapa(6, f"{len(cs)} cortes prontos em saida/{slug}/" if a.renderizar else
-                     f"{len(cs)} cortes prontos pra ajustar: abra no editor e clique em Renderizar em cada um", 100)
-    except Exception as e:                                                   # noqa: BLE001
-        tarefa.d.update(estado="erro", erro=str(e), fim=time.time())
-        tarefa.salvar()
-        tarefa.escrever(f"\nERRO: {e}\n")
-        print(f"[automatico] ERRO: {e}", file=sys.stderr)
-        sys.exit(1)
+        novos = "" if total is None else f" novos (agora são {total})"
+        tarefa.etapa(6, f"{len(cs)} cortes{novos} prontos em saida/{slug}/" if renderizar else
+                     f"{len(cs)} cortes{novos} prontos pra ajustar: abra no editor e clique em Renderizar em cada um", 100)
+
+
+def sobrepoe(a, b):
+    """Quanto dois cortes dividem do vídeo (em s) e se isso conta como repetição: mais de 5 s ou de 25% do menor."""
+    comum = min(a["fim"], b["fim"]) - max(a["ini"], b["ini"])
+    return comum > 0 and (comum > 5 or comum > 0.25 * min(a["dur"], b["dur"]))
+
+
+def mais_cortes(a, tarefa):
+    """Pega MAIS cortes de um vídeo já processado, sem repetir os que já existem: reaproveita a transcrição, manda pro
+    Claude a lista do que já foi feito e descarta qualquer corte novo que se sobreponha a um antigo."""
+    slug = a.mais
+    T = os.path.join(TRAB, slug)
+    arq_cortes = os.path.join(T, "cortes.json")
+    if not re.match(r"^[A-Za-z0-9_.-]+$", slug) or not os.path.isfile(arq_cortes):
+        raise RuntimeError(f"não achei o vídeo '{slug}' em trabalho/")
+    info = json.load(open(os.path.join(T, "info.json"), encoding="utf-8")) if os.path.exists(os.path.join(T, "info.json")) else {}
+    titulo = info.get("title") or slug
+    tarefa.d.update(slug=slug, titulo="Mais cortes: " + titulo, origem=titulo, mais=True)
+    tarefa.etapa(0, "vídeo já baixado; reaproveitando", 5)
+    audio = os.path.join(T, "audio.m4a")
+    if not os.path.exists(audio):
+        audio = next(iter(sorted(glob.glob(os.path.join(T, "audio.*")))), audio)
+    tarefa.etapa(1, "transcrição já feita; reaproveitando", 10)
+    if not os.path.exists(os.path.join(T, "linhas.json")) or not os.path.exists(os.path.join(T, "transcricao-numerada.md")):
+        rodar(tarefa, [PY, "scripts/escolher.py", "preparar", os.path.join(T, "transcricao.json"),
+                       "--saida", os.path.join(T, "transcricao-numerada.md"), "--titulo", titulo])
+    todos = json.load(open(arq_cortes, encoding="utf-8"))
+    velhos = todos["cortes"]
+    ja = [f"- linhas {c.get('linhas', '?')} ({hms_curto(c['ini'])} a {hms_curto(c['fim'])}): \"{c.get('titulo', '')}\""
+          + (f" (hook: {c['hook'][:120]})" if c.get("hook") else "") for c in velhos]
+    # gameplay: o que a pessoa escolheu, senão o que já foi usado nos cortes antigos
+    if a.gameplay in ("sim", "nao"):
+        gameplay = a.gameplay == "sim"
+    else:
+        gameplay = os.path.exists(os.path.join(T, "webcam.json")) or any(
+            (json.load(open(p, encoding="utf-8")).get("gameplay") or {}).get("webcam") is not None
+            for p in glob.glob(os.path.join(T, "corte-*", "plano.json")))
+    # 3. escolhe (Claude), num arquivo separado
+    lote = 1 + max([int(c.get("lote", 1)) for c in velhos] or [1])
+    tarefa.etapa(2, f"o Claude ({a.modelo}) está procurando momentos novos (já existem {len(velhos)} cortes)", 30)
+    orientacao = (a.orientacao or "").strip()
+    if orientacao:
+        tarefa.escrever(f"Orientação da pessoa: {orientacao}\n")
+    arq_esc = os.path.join(T, f"escolha-mais-{lote}.json")
+    arq_novos = os.path.join(T, f"cortes-mais-{lote}.json")
+    if os.path.exists(arq_novos):
+        os.remove(arq_novos)
+    escolher(tarefa, T, titulo, a.cortes, "sim" if gameplay else "nao", a.modelo, orientacao,
+             ja_feitos=ja, arq_esc=arq_esc, arq_cortes=arq_novos)
+    novos = json.load(open(arq_novos, encoding="utf-8"))["cortes"]
+    # a garantia: nada que se sobreponha a um corte que já existe (nem entre os novos)
+    aceitos = []
+    for c in novos:
+        rep = next((v for v in velhos + aceitos if sobrepoe(c, v)), None)
+        if rep:
+            tarefa.escrever(f"descartado (repete o corte \"{rep.get('titulo')}\"): {c.get('titulo')}\n")
+            continue
+        aceitos.append(c)
+    if not aceitos:
+        raise RuntimeError("o Claude não achou momentos novos que não repitam os cortes que já existem")
+    prox = 1 + max(int(c["n"]) for c in velhos)
+    for k, c in enumerate(aceitos):
+        c["n"] = prox + k
+        c["lote"] = lote
+    extras = {k: v for k, v in todos.items() if k != "cortes"}                 # cor da marca/do vídeo: a mesma de antes
+    json.dump({**extras, "cortes": aceitos}, open(arq_novos, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    tarefa.d.update(cortes=len(aceitos), gameplay=gameplay)
+    descartados = len(novos) - len(aceitos)
+    # 4. corta só os novos
+    tarefa.etapa(3, f"{len(aceitos)} cortes novos" + (f" ({descartados} repetido(s) descartado(s))" if descartados else "")
+                 + "; " + ("baixando só esses trechos em alta" if info.get("arquivo") is None else "cortando"), 40)
+    if info.get("arquivo"):
+        rodar(tarefa, [PY, "scripts/cortar.py", "--cortes", arq_novos, "--video", os.path.join(T, info["arquivo"]),
+                       "--audio", audio, "--pasta", T])
+    else:
+        url = info.get("webpage_url") or info.get("original_url")
+        if not url:
+            raise RuntimeError("não achei o link do vídeo no info.json")
+        rodar(tarefa, [PY, "scripts/baixar.py", url, "--pasta", T, "--trechos", arq_novos])
+        rodar(tarefa, [PY, "scripts/cortar.py", "--cortes", arq_novos, "--trechos", os.path.join(T, "trechos"),
+                       "--audio", audio, "--pasta", T])
+    aceitos = json.load(open(arq_novos, encoding="utf-8"))["cortes"]
+    todos = json.load(open(arq_cortes, encoding="utf-8"))                     # junta no cortes.json (os antigos ficam iguais)
+    todos["cortes"] = todos["cortes"] + aceitos
+    json.dump(todos, open(arq_cortes, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    finalizar(tarefa, T, slug, aceitos, gameplay, a.renderizar, total=len(todos["cortes"]))
+
+
+def hms_curto(s):
+    s = int(max(0, s))
+    return f"{s // 3600}:{s % 3600 // 60:02d}:{s % 60:02d}"
 
 
 if __name__ == "__main__":

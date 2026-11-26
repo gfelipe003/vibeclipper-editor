@@ -158,6 +158,19 @@ regras desta etapa 2 lidas deste arquivo; Sonnet por padrão, Opus se a pessoa e
 conversa curta por vídeo. O andamento fica em `trabalho/_tarefas/<id>.json` e `.log`. Pra rodar na mão:
 `python scripts/automatico.py --url <link> [--gameplay auto|sim|nao] [--cortes N] [--modelo sonnet|opus]` (ou `--arquivo`).
 
+## Mais cortes de um vídeo já feito
+Na página inicial, o botão "+ Mais cortes" de cada vídeo roda `python scripts/automatico.py --mais <slug> [--cortes N]
+[--orientacao "..."] [--renderizar]`: reaproveita a transcrição, manda pro Claude a lista dos cortes que já existem (linhas,
+horários, título e hook) pra não repetir trecho nem assunto, e descarta qualquer corte novo que se sobreponha a um antigo
+(mais de 5 s ou 25% do menor). Os novos continuam a numeração (`"lote"` 2, 3...) e entram no fim do `T/cortes.json`; os
+antigos não mudam. No chat, "faz mais cortes desse vídeo" é isso (ou a etapa 2 de novo, à mão, com a mesma regra).
+
+## ChatGPT (título, descrição, tags e thumb)
+Com a chave `OPENAI_API_KEY` em Configurações (API paga por uso, platform.openai.com), a aba ChatGPT do editor gera, de
+cada corte, título, descrição (texto puro, sem markdown) e tags, e a thumb (com referências enviadas ou print do momento,
+e ajustes partindo da última). Tudo fica em `T/corte-N/chatgpt.json` (histórico) e `T/corte-N/chatgpt/` (imagens). Na mão:
+`python scripts/chatgpt.py textos T N ["pedido"]`, `python scripts/chatgpt.py thumb T N ["pedido"] [--ref foto.png]`.
+
 ## Ajustes que a pessoa pode pedir depois
 Ela fala em português normal (às vezes começando com "Claudião", que é brincadeira). Refaça só o que mudou e entregue o arquivo
 novo com a duração.
